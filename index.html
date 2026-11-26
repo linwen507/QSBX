@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>七上八下 · 火锅时序小游戏</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23B3301C'/%3E%3Ccircle cx='16' cy='16' r='9' fill='%23FF5230'/%3E%3Cpath d='M16 7v18M7 16h18' stroke='%23F5B942' stroke-width='2.4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://miaoda.feishu.cn">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=ZCOOL+KuaiLe&amp;display=swap">
+<style>
+/* ===== 设计令牌：牛油红 / 暖金 / 米白 / 翠绿 / 木质 ===== */
+:root{
+  --red-deep:#7A1E12; --red:#B3301C; --red-boil:#FF5230; --red-dim:#5E150C;
+  --gold:#F5B942; --gold-deep:#D99A22; --cream:#FFF3DF; --cream-dim:#F4DDBE;
+  --green:#8FAE5D; --wood:#9C6B3F; --wood-dark:#6E4526; --ink:#4A1408;
+  --font-fun:"ZCOOL KuaiLe","PingFang SC","Microsoft YaHei",sans-serif;
+  --font-body:"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:var(--font-body);color:var(--ink);
+  background:#3D0E07;
+  background-image:radial-gradient(ellipse 90% 70% at 50% 0%,#61190D 0%,#3D0E07 70%);
+  display:flex;justify-content:center;align-items:stretch;
+  overflow:hidden;line-height:1.6;
+}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+[hidden]{display:none !important}
+
+/* ===== 竖屏应用框：手机上满屏，桌面上居中一条 ===== */
+#app{
+  position:relative;width:100%;max-width:460px;height:100dvh;
+  background:var(--cream);overflow:hidden;
+  box-shadow:0 0 60px rgba(0,0,0,.55);
+}
+.screen{position:absolute;inset:0;display:none;flex-direction:column}
+.screen.active{display:flex;animation:scrIn .28s ease both}
+@keyframes scrIn{from{opacity:0}to{opacity:1}}
+
+/* ===== 首页 ===== */
+#scr-home{background:linear-gradient(180deg,#A82C14 0%,#8E2318 55%,#6B180C 100%)}
+.home-deco{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.home-deco svg{position:absolute;opacity:.4}
+.home-top{height:25%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative;z-index:1}
+.game-title{
+  font-family:var(--font-fun);font-size:clamp(52px,15vw,68px);line-height:1.1;
+  color:var(--gold);letter-spacing:.06em;
+  text-shadow:0 3px 0 var(--red-dim),0 6px 0 rgba(0,0,0,.28),0 11px 18px rgba(0,0,0,.45);
+}
+.game-sub{font-size:15px;color:#F4CFA0;margin-top:10px;letter-spacing:.12em}
+.home-mid{height:50%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:26px;position:relative;z-index:1}
+/* 九宫格边框主按钮 */
+.btn-grid9{
+  position:relative;width:min(76%,300px);padding:20px 18px;
+  font-family:var(--font-fun);font-size:27px;letter-spacing:.14em;color:var(--red-deep);
+  background:
+    linear-gradient(var(--cream-dim) 0 0) padding-box,
+    repeating-linear-gradient(90deg,transparent 0 31%,rgba(156,107,63,.4) 31% 33.5%,transparent 33.5% 64.5%,rgba(156,107,63,.4) 64.5% 67%,transparent 67% 100%) padding-box;
+  border:5px solid var(--wood);border-radius:14px;
+  box-shadow:0 5px 0 var(--wood-dark),0 10px 18px rgba(110,69,38,.28),inset 0 0 0 2px rgba(255,243,223,.8);
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  transition:transform .12s ease,box-shadow .12s ease;
+}
+.btn-grid9::before{
+  content:"";position:absolute;inset:0;border-radius:9px;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent 0 46%,rgba(156,107,63,.32) 46% 50%,transparent 50% 96%,rgba(156,107,63,.32) 96% 100%);
+}
+.btn-grid9:active{transform:translateY(4px) scale(.97);box-shadow:0 1px 0 var(--wood-dark),0 4px 8px rgba(110,69,38,.25)}
+.btn-grid9 svg{width:38px;height:38px;flex:none}
+.home-bottom{height:25%;position:relative;z-index:1}
+#btn-rules{
+  position:absolute;right:18px;bottom:20px;
+  padding:10px 18px;font-size:15px;color:var(--red-deep);
+  background:var(--cream);border:2px solid var(--wood);border-radius:999px;
+  box-shadow:0 3px 0 var(--wood-dark);transition:transform .12s ease;
+}
+#btn-rules:active{transform:scale(.94)}
+.home-tip{position:absolute;left:18px;bottom:24px;font-size:12.5px;color:#E8B98A;max-width:55%}
+
+/* ===== 关卡选择 ===== */
+#scr-levels{background:linear-gradient(180deg,#A82C14,#6B180C)}
+.page-head{display:flex;align-items:center;padding:16px 14px;gap:10px}
+.btn-back{
+  width:44px;height:44px;border-radius:12px;flex:none;
+  background:var(--cream);border:2px solid var(--wood);box-shadow:0 3px 0 var(--wood-dark);
+  display:flex;align-items:center;justify-content:center;transition:transform .12s;
+}
+.btn-back:active{transform:scale(.92)}
+.btn-back svg{width:20px;height:20px}
+.page-title{font-family:var(--font-fun);font-size:26px;color:var(--cream);letter-spacing:.15em;flex:1;text-align:center;padding-right:44px}
+.level-grid{
+  flex:1;display:grid;grid-template-columns:repeat(6,1fr);gap:16px;
+  align-content:center;padding:10px 22px 40px;
+}
+.level-card{
+  grid-column:span 2;position:relative;aspect-ratio:1/1.06;border-radius:14px;
+  background:var(--cream);border:4px solid var(--wood);
+  box-shadow:0 4px 0 var(--wood-dark),0 8px 14px rgba(110,69,38,.22);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  transition:transform .12s ease;
+}
+.level-card:nth-child(4){grid-column:2/span 2}
+.level-card:active{transform:scale(.95)}
+.level-card .lv-num{font-family:var(--font-fun);font-size:34px;color:var(--red)}
+.level-card .lv-name{font-size:13px;color:#8A4A22}
+.level-card .lv-stars{display:flex;gap:3px;height:18px}
+.level-card .lv-stars svg{width:16px;height:16px}
+.level-card.locked{background:#E8D6BC;border-color:#B99B72;box-shadow:0 4px 0 #96794F}
+.level-card.locked .lv-num,.level-card.locked .lv-name{visibility:hidden}
+.level-card .lv-lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.level-card .lv-lock svg{width:34px;height:34px;opacity:.65}
+.level-card .lv-best{font-size:11px;color:#A2703F}
+
+/* ===== 对局界面：俯视木桌火锅场景 ===== */
+#scr-game{
+  background:
+    repeating-linear-gradient(90deg,rgba(0,0,0,.12) 0 2px,transparent 2px 88px),
+    repeating-linear-gradient(0deg,rgba(255,235,200,.04) 0 3px,transparent 3px 10px),
+    radial-gradient(ellipse 120% 90% at 50% 45%,#96662F 0%,#7A4C22 60%,#5E3A18 100%);
+}
+#hud{
+  height:10%;min-height:58px;display:flex;align-items:center;gap:8px;
+  padding:8px 10px;color:var(--cream);position:relative;z-index:2;
+}
+#hud .btn-back{background:rgba(255,243,223,.12);border-color:rgba(245,185,66,.55);box-shadow:none;width:42px;height:42px}
+#hud .btn-back svg{stroke:var(--cream)}
+#hud-mode{font-size:12.5px;color:#F4CFA0;max-width:118px;line-height:1.3}
+#hud-score{
+  flex:1;text-align:center;font-family:var(--font-fun);
+  font-size:32px;color:var(--gold);font-variant-numeric:tabular-nums;
+  text-shadow:0 2px 0 rgba(0,0,0,.3);
+}
+#hud-score small{display:block;font-size:10px;color:#F4CFA0;letter-spacing:.3em;line-height:1;margin-bottom:2px;font-family:var(--font-body)}
+#hud-quota{display:flex;gap:4px;align-items:center}
+#hud-quota svg{width:22px;height:22px}
+#hud-quota .pot-used{opacity:.28;filter:grayscale(1)}
+#hud-quota.quota-danger svg:not(.pot-used){animation:quotaBlink .7s ease-in-out infinite}
+@keyframes quotaBlink{0%,100%{filter:none;transform:scale(1)}50%{filter:drop-shadow(0 0 5px #FF5230) hue-rotate(-12deg);transform:scale(1.14)}}
+#stage{position:relative;height:75%;z-index:1}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#tutorial{
+  position:absolute;left:50%;top:12%;transform:translateX(-50%);width:86%;
+  background:rgba(255,243,223,.96);border:3px solid var(--gold);border-radius:14px;
+  padding:14px 16px;font-size:14.5px;color:var(--ink);text-align:center;
+  box-shadow:0 8px 22px rgba(0,0,0,.35);pointer-events:none;z-index:3;
+}
+#tutorial b{color:var(--red)}
+#toast{
+  position:absolute;left:50%;top:34%;transform:translateX(-50%);
+  font-family:var(--font-fun);font-size:30px;color:var(--gold);letter-spacing:.2em;
+  text-shadow:0 2px 0 rgba(0,0,0,.45);opacity:0;pointer-events:none;z-index:3;white-space:nowrap;
+}
+#toast.show{animation:toastFade 1.8s ease both}
+#toast.long{font-size:17px;letter-spacing:.04em;white-space:normal;text-align:center;max-width:92%;line-height:1.45}
+@keyframes toastFade{0%{opacity:0;transform:translateX(-50%) scale(.7)}18%{opacity:1;transform:translateX(-50%) scale(1.06)}30%{transform:translateX(-50%) scale(1)}78%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-14px)}}
+#game-foot{height:15%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 14px;position:relative;z-index:2}
+/* 道具栏：三个槽位，数量角标，空槽置灰；复活为被动槽 */
+#item-bar{display:flex;gap:8px}
+.item-slot{
+  position:relative;width:52px;height:58px;border-radius:12px;flex:none;
+  background:var(--cream);border:3px solid var(--wood);
+  box-shadow:0 3px 0 var(--wood-dark);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  transition:transform .12s ease,opacity .2s ease;
+}
+.item-slot svg{width:24px;height:24px}
+.item-slot .item-name{font-size:9.5px;line-height:1;color:#8A4A22;font-weight:bold}
+#btn-items-help{
+  width:30px;height:30px;border-radius:50%;flex:none;align-self:center;
+  background:rgba(255,243,223,.15);border:2px solid rgba(245,185,66,.6);
+  color:var(--cream);font-family:var(--font-fun);font-size:17px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+#btn-items-help:active{transform:scale(.9)}
+.item-slot:active{transform:scale(.9)}
+.item-slot .item-count{
+  position:absolute;right:-6px;top:-6px;min-width:20px;height:20px;padding:0 4px;
+  background:var(--red);color:var(--cream);border:2px solid var(--cream);border-radius:999px;
+  font-size:12px;font-weight:bold;line-height:16px;text-align:center;font-variant-numeric:tabular-nums;
+}
+.item-slot.empty{opacity:.42;filter:grayscale(.7)}
+.item-slot.empty .item-count{background:#8A6A44}
+.item-slot.passive{border-style:dashed}
+.item-slot.passive.owned{border-style:solid;border-color:var(--gold);box-shadow:0 3px 0 var(--gold-deep),0 0 10px rgba(245,185,66,.5);opacity:1;filter:none}
+.item-slot.passive.used{opacity:.35;filter:grayscale(1)}
+#btn-pause{
+  padding:12px 26px;font-family:var(--font-fun);font-size:19px;letter-spacing:.24em;color:var(--red-deep);
+  background:var(--gold);border-radius:999px;box-shadow:0 4px 0 var(--gold-deep),0 8px 16px rgba(0,0,0,.3);
+  transition:transform .12s ease;flex:none;
+}
+#btn-pause:active{transform:translateY(3px) scale(.97);box-shadow:0 1px 0 var(--gold-deep)}
+#btn-mute{
+  width:44px;height:44px;border-radius:50%;flex:none;
+  background:rgba(255,243,223,.12);border:2px solid rgba(245,185,66,.5);
+  display:flex;align-items:center;justify-content:center;
+}
+#btn-mute svg{width:22px;height:22px;stroke:var(--cream)}
+#btn-mute .slash{display:none}
+#btn-mute.muted .slash{display:block}
+#btn-mute.muted .waves{display:none}
+
+/* ===== 弹窗通用 ===== */
+.overlay{
+  position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
+  background:rgba(46,9,4,.62);padding:22px;
+  opacity:0;pointer-events:none;transition:opacity .22s ease;
+}
+.overlay.show{opacity:1;pointer-events:auto}
+.ov-card{
+  width:100%;max-width:340px;max-height:86%;overflow-y:auto;
+  background:var(--cream);border:4px solid var(--wood);border-radius:18px;
+  box-shadow:0 6px 0 var(--wood-dark),0 18px 40px rgba(0,0,0,.4);
+  padding:22px 20px;transform:translateY(14px) scale(.96);transition:transform .22s ease;
+}
+.overlay.show .ov-card{transform:none}
+.ov-title{font-family:var(--font-fun);font-size:26px;color:var(--red-deep);text-align:center;letter-spacing:.12em;margin-bottom:12px}
+.ov-actions{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+.btn-main,.btn-sub{
+  padding:13px 10px;border-radius:12px;font-family:var(--font-fun);font-size:19px;letter-spacing:.18em;
+  transition:transform .12s ease;text-align:center;
+}
+.btn-main{background:var(--red);color:var(--cream);box-shadow:0 4px 0 var(--red-dim)}
+.btn-sub{background:var(--cream-dim);color:var(--red-deep);border:2px solid var(--wood);box-shadow:0 3px 0 var(--wood-dark)}
+.btn-main:active,.btn-sub:active{transform:scale(.96)}
+
+/* 玩法说明 */
+.rules-body{font-size:14px;color:#5C2A12}
+.rules-body h4{font-size:15.5px;color:var(--red);margin:12px 0 4px;font-family:var(--font-fun);letter-spacing:.08em}
+.rules-body h4:first-child{margin-top:0}
+.rules-body p{margin-bottom:4px}
+.rules-body .swatch{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin:0 2px}
+.rules-body table{width:100%;border-collapse:collapse;table-layout:fixed;margin:6px 0;font-size:13px}
+.rules-body th,.rules-body td{border:1px solid #D9BC93;padding:4px 6px;text-align:center}
+.rules-body th{background:var(--cream-dim);color:var(--red-deep)}
+
+/* 道具图鉴 */
+.item-dex{display:flex;gap:12px;align-items:flex-start;background:var(--cream-dim);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.item-dex svg{width:36px;height:36px;flex:none;margin-top:2px}
+.item-dex .dx-name{font-family:var(--font-fun);font-size:16px;color:var(--red-deep)}
+.item-dex .dx-tag{font-size:11px;color:#8A4A22;background:#EAD3AC;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:2px}
+.item-dex p{font-size:13px;color:#5C2A12;margin-top:2px;line-height:1.5}
+.dex-note{font-size:12.5px;color:#8A4A22;text-align:center;margin-top:4px}
+
+/* 开始挑战 */
+.start-info{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.start-info div{background:var(--cream-dim);border-radius:10px;padding:8px 10px;font-size:13px;color:#8A4A22;text-align:center}
+.start-info b{display:block;font-size:17px;color:var(--red-deep);font-variant-numeric:tabular-nums}
+#start-desc{font-size:13.5px;color:#8A4A22;text-align:center;margin-top:10px}
+
+/* 结算 */
+.result-stars{display:flex;justify-content:center;gap:10px;margin:4px 0 10px}
+.result-stars svg{width:44px;height:44px;opacity:.25;transform:scale(.8);transition:none}
+.result-stars svg.lit{animation:starPop .45s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes starPop{0%{opacity:.25;transform:scale(.5) rotate(-20deg)}60%{opacity:1;transform:scale(1.25) rotate(6deg)}100%{opacity:1;transform:scale(1)}}
+#result-score{font-family:var(--font-fun);font-size:52px;color:var(--red);text-align:center;line-height:1.15;font-variant-numeric:tabular-nums}
+#result-score small{display:block;font-size:12px;color:#A2703F;letter-spacing:.35em;font-family:var(--font-body)}
+.result-rows{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.result-rows div{display:flex;justify-content:space-between;font-size:14px;color:#5C2A12;background:var(--cream-dim);border-radius:8px;padding:7px 12px}
+.result-rows b{font-variant-numeric:tabular-nums;color:var(--red-deep)}
+#result-newbest{text-align:center;font-size:13px;color:var(--gold-deep);margin-top:8px;font-weight:bold}
+
+@media (min-width:768px){
+  #app{border-left:1px solid rgba(245,185,66,.2);border-right:1px solid rgba(245,185,66,.2)}
+}
+@media (prefers-reduced-motion:reduce){
+  .screen.active,.overlay,.ov-card{animation:none;transition:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== 视图：首页 ===== -->
+  <section id="scr-home" class="screen active">
+    <div class="home-deco" aria-hidden="true">
+      <svg style="left:6%;top:9%;width:44px" viewBox="0 0 40 40"><path d="M8 30 Q4 18 14 10 Q26 2 34 8 Q30 22 20 28 Q13 32 8 30Z" fill="#FF6A40"/><path d="M32 7 Q36 3 38 5 Q36 9 33 10Z" fill="#8FAE5D"/></svg>
+      <svg style="right:8%;top:16%;width:30px;transform:rotate(40deg)" viewBox="0 0 40 40"><path d="M8 30 Q4 18 14 10 Q26 2 34 8 Q30 22 20 28 Q13 32 8 30Z" fill="#FF8A50"/><path d="M32 7 Q36 3 38 5 Q36 9 33 10Z" fill="#8FAE5D"/></svg>
+      <svg style="left:12%;bottom:14%;width:22px" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="#D99A22"/><circle cx="8" cy="8" r="2" fill="#F5D08A"/></svg>
+      <svg style="right:16%;bottom:24%;width:16px" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="#D99A22"/><circle cx="8" cy="8" r="2" fill="#F5D08A"/></svg>
+      <svg style="left:40%;top:5%;width:18px" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="#C9861E"/><circle cx="8" cy="8" r="2" fill="#F5D08A"/></svg>
+      <svg style="right:30%;bottom:8%;width:34px;transform:rotate(-25deg)" viewBox="0 0 40 40"><path d="M8 30 Q4 18 14 10 Q26 2 34 8 Q30 22 20 28 Q13 32 8 30Z" fill="#FF6A40"/><path d="M32 7 Q36 3 38 5 Q36 9 33 10Z" fill="#8FAE5D"/></svg>
+    </div>
+    <div class="home-top">
+      <h1 class="game-title">七上八下</h1>
+      <p class="game-sub">烫对窗口期，毛肚才够脆</p>
+    </div>
+    <div class="home-mid">
+      <button class="btn-grid9" id="btn-mode-level">
+        <svg viewBox="0 0 40 40" aria-hidden="true"><rect x="6" y="8" width="28" height="24" rx="5" fill="#6B4A3A"/><path d="M10 14h20M10 20h20M10 26h20" stroke="#4A2E22" stroke-width="2"/><circle cx="14" cy="12" r="1.4" fill="#8A6450"/><circle cx="22" cy="18" r="1.4" fill="#8A6450"/><circle cx="28" cy="24" r="1.4" fill="#8A6450"/><path d="M12 8 Q20 2 28 8" fill="none" stroke="#6B4A3A" stroke-width="3"/></svg>
+        试试手？
+      </button>
+      <button class="btn-grid9" id="btn-mode-endless">
+        <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M6 18h28v4a14 10 0 0 1-28 0Z" fill="#B3301C"/><ellipse cx="20" cy="18" rx="14" ry="4.5" fill="#FF5230"/><path d="M20 13.5v9M13 15v6.5M27 15v6.5" stroke="#7A1E12" stroke-width="1.6"/><path d="M4 18h4M32 18h4" stroke="#6E4526" stroke-width="3" stroke-linecap="round"/><path d="M14 9q1-3 0-5M20 10q1-3 0-6M26 9q1-3 0-5" stroke="#D99A22" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+        来捞吧！
+      </button>
+    </div>
+    <div class="home-bottom">
+      <p class="home-tip">看准沸腾窗口，点击闸口立刻夹菜</p>
+      <button id="btn-rules">玩法说明</button>
+    </div>
+  </section>
+
+  <!-- ===== 视图：关卡选择 ===== -->
+  <section id="scr-levels" class="screen">
+    <div class="page-head">
+      <button class="btn-back" id="btn-levels-back" aria-label="返回首页">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#7A1E12" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 class="page-title">试试手？</h2>
+    </div>
+    <div class="level-grid" id="level-grid"></div>
+  </section>
+
+  <!-- ===== 视图：对局 ===== -->
+  <section id="scr-game" class="screen">
+    <header id="hud">
+      <button class="btn-back" id="btn-game-back" aria-label="暂停并退出">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <div id="hud-mode">第1关</div>
+      <div id="hud-score"><small>总分</small><span id="hud-score-num">0</span></div>
+      <div id="hud-quota" aria-label="剩余失误名额"></div>
+    </header>
+    <div id="stage">
+      <canvas id="cv"></canvas>
+      <div id="tutorial" hidden>食材漂进闸口时，<b>点击闸口立刻夹取</b>！<br><span class="swatch" style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#FF5230;vertical-align:-1px"></span><b>亮红沸腾</b>时夹到＝成功捞出<br>暗红微沸时夹到＝捞生扣分，夹空不扣分</div>
+      <div id="toast"></div>
+    </div>
+    <footer id="game-foot">
+      <div id="item-bar" aria-label="道具栏">
+        <button class="item-slot empty" id="item-boil" aria-label="道具：全锅沸腾，全部闸口同时沸腾5秒">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 15h24v3a12 9 0 0 1-24 0Z" fill="#B3301C"/><ellipse cx="16" cy="15" rx="12" ry="3.6" fill="#FF5230"/><path d="M16 11.5v7M10 13v5M22 13v5" stroke="#7A1E12" stroke-width="1.4"/><path d="M9 8q1.5-3 0-6M16 9q1.5-3 0-7M23 8q1.5-3 0-6" stroke="#D99A22" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="11" cy="14" r="1.3" fill="#FFD76A"/><circle cx="20" cy="13.4" r="1.3" fill="#FFD76A"/></svg>
+          <span class="item-count">0</span>
+          <span class="item-name">沸腾</span>
+        </button>
+        <button class="item-slot empty" id="item-clear" aria-label="道具：清场，消除在场所有食材">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 16h20v2a10 8 0 0 1-20 0Z" fill="#FFF3DF" stroke="#D99A22" stroke-width="1.6"/><ellipse cx="16" cy="16" rx="10" ry="3" fill="#F4DDBE" stroke="#D99A22" stroke-width="1.6"/><path d="M5 9h13M8 5h13M3 13h9" stroke="#8FAE5D" stroke-width="2.4" stroke-linecap="round"/><path d="M24 6l2 2M27 3l1.5 1.5" stroke="#F5B942" stroke-width="2" stroke-linecap="round"/></svg>
+          <span class="item-count">0</span>
+          <span class="item-name">清场</span>
+        </button>
+        <button class="item-slot empty" id="item-heart" aria-label="道具：补心，恢复1次已消耗的失误机会，来捞吧专属">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 15h22v3a11 8.5 0 0 1-22 0Z" fill="#B3301C"/><ellipse cx="16" cy="15" rx="11" ry="3.4" fill="#FF5230"/><path d="M2.5 15h3M26.5 15h3" stroke="#7A1E12" stroke-width="2" stroke-linecap="round"/><path d="M16 5v8M12 9h8" stroke="#F5B942" stroke-width="2.8" stroke-linecap="round"/></svg>
+          <span class="item-count">0</span>
+          <span class="item-name">补心</span>
+        </button>
+        <button class="item-slot passive empty" id="item-revive" aria-label="被动道具：满血复活，失误名额耗尽时自动回满，每局限一次">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 27C8 21 4 16 4 11a6.5 6.5 0 0 1 12-3.5A6.5 6.5 0 0 1 28 11c0 5-4 10-12 16Z" fill="#E85A4A" stroke="#B3301C" stroke-width="1.6"/><path d="M16 10v8M12 14h8" stroke="#FFF3DF" stroke-width="2.6" stroke-linecap="round"/></svg>
+          <span class="item-count">0</span>
+          <span class="item-name">复活</span>
+        </button>
+        <button id="btn-items-help" aria-label="查看道具说明">?</button>
+      </div>
+      <button id="btn-pause">暂停</button>
+      <button id="btn-mute" role="switch" aria-checked="false" aria-label="声音开关">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" stroke="none" style="fill:#FFF3DF"/>
+          <g class="waves"><path d="M16 9a4 4 0 0 1 0 6"/><path d="M18.5 6.5a8 8 0 0 1 0 11"/></g>
+          <line class="slash" x1="16" y1="9" x2="21" y2="15" stroke="#FF8A6A"/><line class="slash" x1="21" y1="9" x2="16" y2="15" stroke="#FF8A6A"/>
+        </svg>
+      </button>
+    </footer>
+  </section>
+
+  <!-- ===== 弹窗：玩法说明 ===== -->
+  <div class="overlay" id="ov-rules">
+    <div class="ov-card">
+      <h3 class="ov-title">玩法说明</h3>
+      <div class="rules-body">
+        <h4>怎么夹</h4>
+        <p>食材沿红汤航道从左向右漂。<b>点击闸口＝立刻夹一下</b>：闸口里有食材就马上判定，没有食材则夹空（不扣分）。食材不会停留，看准时机再出手。</p>
+        <h4>什么时机</h4>
+        <p>闸口自带固定沸腾节奏：<span class="swatch" style="background:#FF5230"></span><b>亮红沸腾</b>＝有效窗口，<span class="swatch" style="background:#5E150C"></span><b>暗红微沸</b>＝无效期。沸腾时夹到→成功捞出；微沸时夹到→捞生失误；一直没夹、漂完全程→煮老失误。不同食材夹取范围宽窄不同：鸭血最宽，毛肚极窄。</p>
+        <h4>食材分值</h4>
+        <table><colgroup><col style="width:28%"><col style="width:24%"><col style="width:24%"><col style="width:24%"></colgroup>
+          <tr><th>食材</th><th>速度</th><th>容错</th><th>分值</th></tr>
+          <tr><td>土豆片</td><td>慢</td><td>宽</td><td>40</td></tr>
+          <tr><td>藕片</td><td>慢</td><td>宽</td><td>45</td></tr>
+          <tr><td>鸭血</td><td>慢</td><td>宽</td><td>50</td></tr>
+          <tr><td>嫩牛肉</td><td>中慢</td><td>较宽</td><td>70</td></tr>
+          <tr><td>黄喉</td><td>中</td><td>中</td><td>80</td></tr>
+          <tr><td>鸭肠</td><td>快</td><td>窄</td><td>90</td></tr>
+          <tr><td>毛肚</td><td>中</td><td>极窄</td><td>100</td></tr>
+          <tr><td>郡花(稀)</td><td>中快</td><td>中</td><td>110</td></tr>
+          <tr><td>鹅肠(稀)</td><td>很快</td><td>窄</td><td>130</td></tr>
+          <tr><td>脑花(稀)</td><td>中慢</td><td>较窄</td><td>150</td></tr>
+        </table>
+        <p>标「稀」为稀有食材：分值高但生成权重低，偶尔才现身，见到别手软。</p>
+        <h4>计分</h4>
+        <p>总分＝基础得分＋时间奖励－失误扣分＋连击加分。失误每次扣80分，<b>老卤格</b>（深色标「老卤」）内捞生扣160分，总分最低为0。连击3-4次每次+20，5-7次每次+50，8次以上每次+80，失误清零。试试手（关卡）快于基准时间，每秒奖励5分。</p>
+        <h4>星级</h4>
+        <p>通关得1星；得分达目标分90%得2星；达120%且失误≤1次得3星。</p>
+        <h4>暴击与道具</h4>
+        <p>连击≥3后每次成功有概率<b>暴击</b>：该次基础得分翻倍，并随机掉落1件道具；连击越高暴击概率越大（8%起步，每多1连+5%，最高45%）。道具仅本局有效，在底部道具栏点击使用：</p>
+        <p>「全锅沸腾」：全部闸口同时沸腾5秒。<br>「清场」：消除在场所有食材，不计分不扣分。<br>「补心」（来捞吧专属）：恢复1次已消耗的失误机会，名额还是满的时候用不了。<br>「满血复活」（被动）：失误名额耗尽时自动回满；每局最多获得1个，掉落概率更低。</p>
+        <h4>金色食材（来捞吧）</h4>
+        <p>来捞吧偶尔出现<b>泛金光、带金星</b>的食材：本体得分为原食材的<b>2倍</b>；沸腾时成功夹到还触发<b>金汤爆发</b>——消除屏幕上所有其他食材，并按各自分值的<b>2倍</b>计分；微沸夹到或漂走都不扣分、不断连击。</p>
+        <h4>失败条件</h4>
+        <p>失误名额（右上角小火锅）耗尽即挑战结束。来捞吧每捞出10份食材难度提升1级，最高10级；食材速度随难度提升但有上限，不会过快。</p>
+      </div>
+      <div class="ov-actions"><button class="btn-main" id="btn-rules-close">晓得了</button></div>
+    </div>
+  </div>
+
+  <!-- ===== 弹窗：道具图鉴 ===== -->
+  <div class="overlay" id="ov-items">
+    <div class="ov-card">
+      <h3 class="ov-title">道具图鉴</h3>
+      <div class="item-dex">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 15h24v3a12 9 0 0 1-24 0Z" fill="#B3301C"/><ellipse cx="16" cy="15" rx="12" ry="3.6" fill="#FF5230"/><path d="M16 11.5v7M10 13v5M22 13v5" stroke="#7A1E12" stroke-width="1.4"/><path d="M9 8q1.5-3 0-6M16 9q1.5-3 0-7M23 8q1.5-3 0-6" stroke="#D99A22" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="11" cy="14" r="1.3" fill="#FFD76A"/><circle cx="20" cy="13.4" r="1.3" fill="#FFD76A"/></svg>
+        <div><span class="dx-name">全锅沸腾</span><span class="dx-tag">主动 · 点击使用</span>
+          <p>全部闸口同时沸腾5秒，窗口全开，抓紧连夹刷连击。</p></div>
+      </div>
+      <div class="item-dex">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 16h20v2a10 8 0 0 1-20 0Z" fill="#FFF3DF" stroke="#D99A22" stroke-width="1.6"/><ellipse cx="16" cy="16" rx="10" ry="3" fill="#F4DDBE" stroke="#D99A22" stroke-width="1.6"/><path d="M5 9h13M8 5h13M3 13h9" stroke="#8FAE5D" stroke-width="2.4" stroke-linecap="round"/><path d="M24 6l2 2M27 3l1.5 1.5" stroke="#F5B942" stroke-width="2" stroke-linecap="round"/></svg>
+        <div><span class="dx-name">清场</span><span class="dx-tag">主动 · 点击使用</span>
+          <p>消除在场所有食材，不计分、不扣分、不耗名额。场面快失控时用来喘口气。</p></div>
+      </div>
+      <div class="item-dex">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 15h22v3a11 8.5 0 0 1-22 0Z" fill="#B3301C"/><ellipse cx="16" cy="15" rx="11" ry="3.4" fill="#FF5230"/><path d="M2.5 15h3M26.5 15h3" stroke="#7A1E12" stroke-width="2" stroke-linecap="round"/><path d="M16 5v8M12 9h8" stroke="#F5B942" stroke-width="2.8" stroke-linecap="round"/></svg>
+        <div><span class="dx-name">补心</span><span class="dx-tag">主动 · 来捞吧专属</span>
+          <p>恢复1次已消耗的失误机会（右上角小火锅回亮1格）。名额还是满的时候用不了；仅来捞吧掉落。</p></div>
+      </div>
+      <div class="item-dex">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 27C8 21 4 16 4 11a6.5 6.5 0 0 1 12-3.5A6.5 6.5 0 0 1 28 11c0 5-4 10-12 16Z" fill="#E85A4A" stroke="#B3301C" stroke-width="1.6"/><path d="M16 10v8M12 14h8" stroke="#FFF3DF" stroke-width="2.6" stroke-linecap="round"/></svg>
+        <div><span class="dx-name">满血复活</span><span class="dx-tag">被动 · 自动生效</span>
+          <p>失误名额耗尽时自动回满，继续挑战。每局最多获得1个，掉落概率更低（10%）。</p></div>
+      </div>
+      <p class="dex-note">道具由暴击随机掉落，仅本局有效，开局清零。<br>连击≥3起可暴击，连击越高暴击概率越大。<br>来捞吧还会偶尔出现<b>金色食材</b>：本体双倍分，沸腾时夹到＝清场再双倍计分。</p>
+      <div class="ov-actions"><button class="btn-main" id="btn-items-close">晓得了</button></div>
+    </div>
+  </div>
+
+  <!-- ===== 弹窗：开始挑战 ===== -->
+  <div class="overlay" id="ov-start">
+    <div class="ov-card">
+      <h3 class="ov-title" id="start-title">第1关 · 初识毛肚</h3>
+      <div class="start-info">
+        <div>通关目标<b id="start-target">捞出5份</b></div>
+        <div>失误名额<b id="start-quota">3次</b></div>
+        <div>基准时间<b id="start-par">40秒</b></div>
+        <div>目标分<b id="start-tscore">500</b></div>
+      </div>
+      <p id="start-desc"></p>
+      <div class="ov-actions">
+        <button class="btn-main" id="btn-start-go">开始挑战</button>
+        <button class="btn-sub" id="btn-start-cancel">再想想</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 弹窗：暂停 ===== -->
+  <div class="overlay" id="ov-pause">
+    <div class="ov-card">
+      <h3 class="ov-title">游戏暂停</h3>
+      <div class="ov-actions">
+        <button class="btn-main" id="btn-resume">继续游戏</button>
+        <button class="btn-sub" id="btn-quit">退出本局</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 弹窗：结算 ===== -->
+  <div class="overlay" id="ov-result">
+    <div class="ov-card">
+      <h3 class="ov-title" id="result-title">通关成功</h3>
+      <div class="result-stars" id="result-stars">
+        <svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" fill="#F5B942" stroke="#D99A22" stroke-width="1"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" fill="#F5B942" stroke="#D99A22" stroke-width="1"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" fill="#F5B942" stroke="#D99A22" stroke-width="1"/></svg>
+      </div>
+      <div id="result-score"><small>最终得分</small><span id="result-score-num">0</span></div>
+      <div class="result-rows" id="result-rows"></div>
+      <div id="result-newbest" hidden>新纪录！</div>
+      <div class="ov-actions" id="result-actions"></div>
+    </div>
+  </div>
+
+</div>
+<script>
+'use strict';
+/* ============================================================
+   《七上八下》火锅时序管理小游戏
+   规则集唯一标识：所有判定 / 计分 / 关卡参数集中于此，
+   界面文案与数值均由 RULES 派生，禁止散落复制。
+   ============================================================ */
+const RULESET_ID = 'qsbx-v9';   // v9：模式更名——关卡模式=试试手？无尽模式=来捞吧！
+/* ===== 规则配置（单位：速度=航道占比/秒，容错=秒，周期=秒） ===== */
+const RULES = {
+  missPenalty: 80,          // 单次失误扣分
+  laoluMultiplier: 2,       // 老卤格捞生扣分倍率
+  timeBonusPerSec: 5,       // 关卡模式每快1秒的奖励
+  comboTiers: [             // 连击额外加分（含当前次）
+    { min: 8, bonus: 80 }, { min: 5, bonus: 50 }, { min: 3, bonus: 20 }
+  ],
+  star2: 0.9, star3: 1.2, star3MaxMiss: 1,   // 星级阈值（相对目标分）
+  endlessStep: 10, endlessMaxLv: 10,         // 无尽每10份升1级，封顶10级
+  endlessSpeedCap: 1.25,                     // 无尽食材速度倍率上限（不能太快）
+  crit: { minCombo: 3, base: 0.08, step: 0.05, cap: 0.45 },  // 暴击：连击≥3起8%，每多1连+5%，封顶45%
+  critScoreMul: 2,                           // 暴击该次基础得分翻倍
+  boilDuration: 5,                           // 道具「全锅沸腾」持续秒数
+  itemWeights: { boil: 45, clear: 45, revive: 10 },   // 关卡掉落权重，复活概率更低
+  itemWeightsEndless: { boil: 40, clear: 40, heart: 12, revive: 8 },   // 无尽掉落：新增补心，复活仍最低
+  goldenChance: 0.035,  // 无尽模式金色食材生成概率（偶尔出现）
+  goldenScoreMul: 2     // 金色食材：本体得分×2，金汤爆发清场所得也×2
+};
+const ITEM_NAMES = { boil: '全锅沸腾', clear: '清场', heart: '补心', revive: '满血复活' };
+const ITEM_DESC = {
+  boil: '全部闸口同时沸腾5秒',
+  clear: '消除在场所有食材，不计分不扣分',
+  heart: '恢复1次已消耗的失误机会，来捞吧专属',
+  revive: '被动：名额耗尽自动回满，每局限1个'
+};
+/* 食材表：speed=航道占比/秒；tol=夹取容错秒数；weight=生成权重（越小越稀有） */
+const FOODS = {
+  tudou:    { name: '土豆片', speed: 0.095, tol: 0.55, score: 40,  weight: 10 },
+  oupian:   { name: '藕片',   speed: 0.110, tol: 0.45, score: 45,  weight: 10 },
+  yaxue:    { name: '鸭血',   speed: 0.105, tol: 0.50, score: 50,  weight: 10 },
+  niurou:   { name: '嫩牛肉', speed: 0.125, tol: 0.38, score: 70,  weight: 10 },
+  huanghou: { name: '黄喉',   speed: 0.150, tol: 0.26, score: 80,  weight: 10 },
+  yachang:  { name: '鸭肠',   speed: 0.185, tol: 0.15, score: 90,  weight: 8 },
+  maodu:    { name: '毛肚',   speed: 0.150, tol: 0.07, score: 100, weight: 8 },
+  junhua:   { name: '郡花',   speed: 0.160, tol: 0.20, score: 110, weight: 3 },   // 稀有
+  echang:   { name: '鹅肠',   speed: 0.200, tol: 0.12, score: 130, weight: 2 },   // 稀有
+  naohua:   { name: '脑花',   speed: 0.120, tol: 0.18, score: 150, weight: 1 }    // 极稀有
+};
+const RARE_FOODS = ['junhua', 'echang', 'naohua'];
+/* 关卡表：periods=各闸口沸腾周期；boil=沸腾期占比；phases=初始相位错开 */
+const LEVELS = [
+  { name: '初识毛肚', gates: 2, foods: ['maodu'], quota: 3, target: 5,  par: 40, targetScore: 500,
+    periods: [3.4, 3.0], boil: 0.58, phases: [0, 0.5], speedMul: 0.72, spawnEvery: 2.5,
+    desc: '教学关：周期长、窗口宽、食材慢，食材漂进闸口时看准亮红点击夹取' },
+  { name: '多格涮烫', gates: 5, foods: ['maodu', 'yaxue', 'tudou'], quota: 3, target: 8, par: 50, targetScore: 600,
+    periods: [3.6, 2.9, 3.2, 2.6, 3.0], boil: 0.50, phases: [0, 0.35, 0.7, 0.15, 0.55], speedMul: 0.85, spawnEvery: 2.2,
+    desc: '五个闸口节奏各不相同，时序不同步，提前预判' },
+  { name: '多菜同涮', gates: 5, foods: ['maodu', 'yachang', 'huanghou', 'junhua'], quota: 2, target: 10, par: 60, targetScore: 850,
+    periods: [3.0, 2.5, 3.3, 2.7, 2.9], boil: 0.46, phases: [0.1, 0.6, 0.3, 0.8, 0.45], speedMul: 1.0, spawnEvery: 1.9, batch: true,
+    desc: '食材分批生成、速度各异，稀有郡花偶尔现身，高分别错过' },
+  { name: '老卤险格', gates: 6, foods: ['maodu', 'yachang', 'huanghou', 'niurou', 'echang'], quota: 2, target: 12, par: 65, targetScore: 1000,
+    periods: [3.1, 2.6, 2.9, 2.4, 3.2, 2.7], boil: 0.44, phases: [0, 0.4, 0.75, 0.2, 0.6, 0.9], speedMul: 1.0, spawnEvery: 1.8, laoluIndex: 3,
+    desc: '第4格是老卤格：捞生扣分翻倍（160分）；稀有鹅肠更快更窄' },
+  { name: '汤底升温', gates: 7, foods: ['maodu', 'yachang', 'huanghou', 'niurou', 'yaxue', 'tudou', 'oupian', 'junhua', 'echang', 'naohua'], quota: 2, target: 15, par: 70, targetScore: 1400,
+    periods: [2.9, 2.5, 3.1, 2.4, 2.8, 2.6, 3.0], boil: 0.42, phases: [0, 0.3, 0.6, 0.1, 0.45, 0.75, 0.9], speedMul: 1.0, spawnEvery: 1.7, shrink: true,
+    desc: '全品类下锅：极稀有脑花150分现身；所有闸口周期随时间缩短' }
+];
+/* 无尽模式基础配置与逐级升级规则 */
+const ENDLESS = {
+  gates: 3, foods: ['yaxue', 'niurou', 'huanghou', 'tudou'], quota: 5,
+  period: 3.6, boil: 0.55, speedMul: 0.85, spawnEvery: 2.4,
+  /* 由难度等级 n（0~10）推导当前配置，升级规则与设计案一致 */
+  derive(n) {
+    const foods = ['yaxue', 'niurou', 'huanghou', 'tudou'];
+    if (n >= 1) { foods.push('yachang', 'junhua'); }   // 第1级：+1闸口，加入鸭肠与稀有郡花
+    if (n >= 2) { foods.push('maodu', 'oupian'); }     // 第2级：周期-10%，加入毛肚与藕片
+    if (n >= 4) foods.push('echang');                  // 第4级：稀有鹅肠
+    if (n >= 6) foods.push('naohua');                  // 第6级：极稀有脑花
+    let periodMul = n >= 2 ? 0.9 : 1;             // 第3级起每级再缩短8%
+    if (n >= 4) periodMul *= Math.pow(0.92, n - 3);
+    let speedMul = 0.85;                          // 第3级：速度+10%，之后每级+5%，封顶不会过快
+    if (n >= 3) speedMul *= 1.1 * Math.pow(1.05, n - 3);
+    speedMul = Math.min(RULES.endlessSpeedCap, speedMul);
+    return {
+      gateCount: 3 + (n >= 1 ? 1 : 0) + (n >= 3 ? 1 : 0),
+      laoluIndex: n >= 3 ? 3 + (n >= 1 ? 1 : 0) : -1,   // 新增的最后一格为老卤格
+      foods, periodMul: Math.max(0.45, periodMul), speedMul,
+      spawnEvery: Math.max(1.2, 2.4 - n * 0.12)
+    };
+  }
+};
+/* 航道布局（航道占比坐标）：闸口均匀分布区间、蘸料碗位置、出界点 */
+const LANE = { gateFrom: 0.10, gateTo: 0.72, bowlX: 0.88, exitX: 0.815, spawnX: -0.05 };
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ===== 音效引擎：Web Audio 合成，首次点击后启动，可静音 ===== */
+const SFX = (() => {
+  let ctx = null, master = null, bgGain = null;
+  let muted = localStorage.getItem('qsbx_muted') === '1';
+  function ensure() {
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    ctx = new AC();
+    master = ctx.createGain();
+    master.gain.value = muted ? 0 : 0.4;
+    master.connect(ctx.destination);
+    startBg();
+  }
+  /* 背景：轻微火锅咕嘟声（滤波噪声 + 慢速起伏），音量很低 */
+  function startBg() {
+    const len = ctx.sampleRate * 2;
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 320; bp.Q.value = 1.4;
+    bgGain = ctx.createGain(); bgGain.gain.value = 0.05;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.7;
+    const lfoG = ctx.createGain(); lfoG.gain.value = 0.025;
+    lfo.connect(lfoG); lfoG.connect(bgGain.gain);
+    src.connect(bp); bp.connect(bgGain); bgGain.connect(master);
+    src.start(); lfo.start();
+  }
+  /* 基础音符：起止各留 5ms 淡入淡出防爆音 */
+  function tone(freq, dur, type, vol, when, slideTo) {
+    if (!ctx || muted) return;
+    const t = ctx.currentTime + (when || 0);
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(master);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+  return {
+    ensure,
+    get muted() { return muted; },
+    toggle() {
+      muted = !muted;
+      localStorage.setItem('qsbx_muted', muted ? '1' : '0');
+      if (master) master.gain.linearRampToValueAtTime(muted ? 0 : 0.4, (ctx ? ctx.currentTime : 0) + 0.05);
+      return muted;
+    },
+    click()   { tone(1700, 0.05, 'square', 0.12); tone(2400, 0.03, 'square', 0.08, 0.02); },   // 筷子碰撞
+    success() { tone(880, 0.1, 'sine', 0.22); tone(1320, 0.16, 'sine', 0.2, 0.07); },          // 轻快“叮”
+    miss()    { tone(150, 0.28, 'triangle', 0.3, 0, 80); },                                    // 低沉闷响
+    combo(tier) {                                                                            // 3/5/8 连击递进上扬
+      const base = tier === 8 ? 660 : tier === 5 ? 550 : 440;
+      [0, 4, 7].forEach((s, i) => tone(base * Math.pow(2, s / 12), 0.12, 'sine', 0.18, i * 0.07));
+    },
+    crit() { tone(660, 0.09, 'square', 0.14); tone(990, 0.09, 'square', 0.14, 0.06); tone(1320, 0.16, 'sine', 0.2, 0.12); },  // 暴击上扬 zap
+    win() {                                                                                  // 热闹碗筷碰撞
+      [1500, 2000, 1750, 2300].forEach((f, i) => tone(f, 0.05, 'square', 0.1, i * 0.09));
+      [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, 'sine', 0.2, 0.35 + i * 0.11));
+    },
+    lose() { tone(392, 0.3, 'sine', 0.22); tone(294, 0.5, 'sine', 0.2, 0.28); }               // 平缓收束
+  };
+})();
+
+/* ===== 存档：解锁进度 / 星级 / 最高分（localStorage） ===== */
+const SAVE_KEY = 'qsbx_save_v1';
+function loadSave() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (s && typeof s.unlocked === 'number') {
+      if (!s.coachSeen || typeof s.coachSeen !== 'object') s.coachSeen = {};   // 旧存档补情景引导记录
+      return s;
+    }
+  } catch (e) { /* 存档损坏则重置 */ }
+  return { unlocked: 1, stars: {}, best: {}, endlessBest: { score: 0, level: 0 }, coachSeen: {} };
+}
+let save = loadSave();
+function persist() { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }
+
+/* ===== 对局状态 ===== */
+const G = {
+  screen: 'home',        // home | levels | game
+  mode: null,            // level | endless
+  levelIdx: 0,           // 关卡序号（0起）
+  running: false, paused: false, over: false,
+  time: 0,               // 对局仿真时间（暂停不累计）
+  gates: [], foods: [], flyers: [], floaters: [],
+  spawnTimer: 0, spawnCount: 0,
+  captured: 0, misses: 0, combo: 0, maxCombo: 0,
+  base: 0, comboBonus: 0, penalty: 0, quota: 0,
+  endlessLv: 0, endlessCfg: null,
+  bowlPile: [],          // 蘸料碗里展示的食材
+  items: { boil: 0, clear: 0, heart: 0, revive: 0 },   // 本局道具库存（每局重置，仅本局有效）
+  reviveObtained: false, // 复活道具每局只能获得一次
+  itemSeen: { boil: false, clear: false, heart: false, revive: false },   // 首次获得时弹出效果说明
+  forceBoilUntil: -1,    // 「全锅沸腾」生效截止时间（仿真时间）
+  crits: 0,              // 本局暴击次数
+  goldens: 0,            // 本局金汤爆发次数
+  coach: null,           // 当前情景引导气泡（非null时冻结仿真）
+  coachQueue: [],        // 排队中的引导
+  tutorialDone: false,
+  rng: Math.random
+};
+/* 可复现随机：每局用时间种子初始化 mulberry32 */
+function makeRng(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function displayScore() { return Math.max(0, G.base + G.comboBonus - G.penalty); }
+/* ===== 仿真：闸口时序 / 食材漂流 / 判定结算 ===== */
+function buildGates(specs) {
+  // specs: [{period, boil, phase, laolu}]，位置在闸口区间内均匀分布
+  const n = specs.length;
+  return specs.map((s, i) => ({
+    fx: n === 1 ? (LANE.gateFrom + LANE.gateTo) / 2
+                : LANE.gateFrom + (LANE.gateTo - LANE.gateFrom) * i / (n - 1),
+    basePeriod: s.period, period: s.period, boil: s.boil,
+    phase: s.phase || 0, laolu: !!s.laolu,
+    bounce: 0, pick: 0, flash: 0, bubbles: [], pop: 1   // pick：夹取动画；flash：成功金闪；pop：入场
+  }));
+}
+function levelSpecs(idx) {
+  const L = LEVELS[idx];
+  const specs = [];
+  for (let i = 0; i < L.gates; i++) {
+    specs.push({ period: L.periods[i], boil: L.boil, phase: L.phases[i], laolu: i === L.laoluIndex });
+  }
+  return specs;
+}
+function endlessSpecs(cfg) {
+  const specs = [];
+  for (let i = 0; i < cfg.gateCount; i++) {
+    specs.push({
+      period: ENDLESS.period * cfg.periodMul * (1 + (i % 3) * 0.12),
+      boil: ENDLESS.boil, phase: (i * 0.33) % 1, laolu: i === cfg.laoluIndex
+    });
+  }
+  return specs;
+}
+function isBoiling(g) { return G.time < G.forceBoilUntil || (g.phase % 1) < g.boil; }
+function boilNearEnd(g) { const p = g.phase % 1; return p < g.boil && p > g.boil - 0.12; }
+
+function resetRun() {
+  G.time = 0; G.foods = []; G.flyers = []; G.floaters = [];
+  G.spawnTimer = 1.2; G.spawnCount = 0;
+  G.captured = 0; G.misses = 0; G.combo = 0; G.maxCombo = 0;
+  G.base = 0; G.comboBonus = 0; G.penalty = 0;
+  G.bowlPile = []; G.over = false; G.paused = false;
+  G.items = { boil: 0, clear: 0, heart: 0, revive: 0 };
+  G.reviveObtained = false; G.forceBoilUntil = -1; G.crits = 0; G.goldens = 0;
+  G.coach = null; G.coachQueue = [];
+  G.itemSeen = { boil: false, clear: false, heart: false, revive: false };
+  G.rng = makeRng((Date.now() % 2147483647) >>> 0);
+}
+function startLevel(idx) {
+  G.mode = 'level'; G.levelIdx = idx;
+  resetRun();
+  const L = LEVELS[idx];
+  G.gates = buildGates(levelSpecs(idx));
+  G.quota = L.quota; G.endlessLv = 0; G.endlessCfg = null;
+  enterGame('第' + (idx + 1) + '关 · ' + L.name);
+  // 教学关首次进入显示引导，首次点击闸口后消失
+  const tut = document.getElementById('tutorial');
+  if (idx === 0 && !save.tutorialSeen) { tut.hidden = false; G.tutorialDone = false; }
+  else { tut.hidden = true; G.tutorialDone = true; }
+  // 开场情景引导：冻结画面，气泡指向本关重点目标
+  const START_COACH = [
+    ['l1-start', '怎么夹', '食材漂到闸口时，点击闸口立刻夹一下；夹空不扣分。亮红沸腾时夹到才成功，暗红微沸夹到扣80分。', 0],
+    ['l2-start', '五闸五节奏', '5个闸口沸腾周期各不相同：先看哪格快亮红，再等食材漂进去，提前预判。', 2],
+    ['l3-start', '分批出锅', '每第3波食材双份前后脚出场，规划好夹取顺序。本关名额只有2次，宁夹空不乱夹。', 0],
+    ['l4-start', '老卤险格', '第4格是老卤格：在里面捞生扣160分！务必等它沸腾再夹。', 3],
+    ['l5-start', '汤底升温', '全10种食材下锅；闸口周期随时间缩短，窗口越来越紧，尽快捞满15份。', 3]
+  ];
+  const sc = START_COACH[idx];
+  coach(sc[0], sc[1], sc[2], { kind: 'gate', i: sc[3] });
+}
+function startEndless() {
+  G.mode = 'endless'; G.levelIdx = -1;
+  resetRun();
+  G.endlessLv = 0; G.endlessCfg = ENDLESS.derive(0);
+  G.gates = buildGates(endlessSpecs(G.endlessCfg));
+  G.quota = ENDLESS.quota;
+  enterGame('来捞吧！Lv.0');
+  document.getElementById('tutorial').hidden = true; G.tutorialDone = true;
+}
+function enterGame(modeLabel) {
+  document.getElementById('hud-mode').textContent = modeLabel;
+  G.running = true;
+  showScreen('scr-game');
+  hideAllOverlays();
+  resizeCanvas();
+  updateHud(true);
+  updateItemBar();
+}
+/* 当前生效的生成间隔与食材池 */
+function curSpawnEvery() { return G.mode === 'level' ? LEVELS[G.levelIdx].spawnEvery : G.endlessCfg.spawnEvery; }
+function curFoods() { return G.mode === 'level' ? LEVELS[G.levelIdx].foods : G.endlessCfg.foods; }
+function curSpeedMul() { return G.mode === 'level' ? LEVELS[G.levelIdx].speedMul : G.endlessCfg.speedMul; }
+
+function spawnFood(offset) {
+  // 按权重抽取：稀有食材权重低，出现概率小但分值高
+  const pool = curFoods();
+  let total = 0;
+  for (const t of pool) total += FOODS[t].weight;
+  let r = G.rng() * total, type = pool[0];
+  for (const t of pool) { r -= FOODS[t].weight; if (r <= 0) { type = t; break; } }
+  const f = {
+    type, fx: LANE.spawnX - (offset || 0), prevFx: LANE.spawnX - (offset || 0),
+    bob: G.rng() * Math.PI * 2, alive: true, golden: false
+  };
+  // 无尽模式偶尔生成金色食材：成功夹到可清场计分，是奖励机会
+  if (G.mode === 'endless' && G.rng() < RULES.goldenChance) f.golden = true;
+  G.foods.push(f);
+  // 本关新食材首次下锅：情景引导介绍名字/分值/手感
+  const NEW_FOOD_COACH = {
+    1: { tudou: ['新食材·土豆片', '40分：速度慢、夹取范围宽，好夹但分低，适合稳攒连击。'],
+         oupian: ['新食材·藕片', '45分：慢速宽范围，和土豆片一样是稳连击的好帮手。'] },
+    2: { junhua: ['新稀有·郡花', '110分：出现概率低、分值高，中快速度中等容错，见到别手软。'] },
+    3: { echang: ['新稀有·鹅肠', '130分：速度很快、容错窄，比鸭肠更考验手速，低概率现身。'] },
+    4: { naohua: ['极稀有·脑花', '150分：全场最高分！中慢速度但容错较窄，看准沸腾再夹。'] }
+  };
+  const nc = G.mode === 'level' && NEW_FOOD_COACH[G.levelIdx] && NEW_FOOD_COACH[G.levelIdx][type];
+  if (nc) coach('new-' + type, nc[0], nc[1], { kind: 'food', f });
+}
+function update(dt) {
+  G.time += dt;
+  const L = G.mode === 'level' ? LEVELS[G.levelIdx] : null;
+  // 闸口相位推进；第5关周期随时间缩短（相位累积保证缩短时不跳变）
+  for (const g of G.gates) {
+    let p = g.basePeriod;
+    if (L && L.shrink) p = g.basePeriod * Math.max(0.6, 1 - 0.005 * G.time);
+    g.period = p;
+    g.phase += dt / p;
+    if (g.bounce > 0) g.bounce = Math.max(0, g.bounce - dt * 5);
+    if (g.pick > 0) g.pick = Math.max(0, g.pick - dt * 4);
+    if (g.flash > 0) g.flash = Math.max(0, g.flash - dt * 2.5);
+    if (g.pop > 0) g.pop = Math.max(0, g.pop - dt * 3);
+  }
+  // 食材生成：第3关起每第3波双份分批出场
+  G.spawnTimer -= dt;
+  if (G.spawnTimer <= 0) {
+    G.spawnTimer = curSpawnEvery();
+    G.spawnCount++;
+    spawnFood(0);
+    if (L && L.batch && G.spawnCount % 3 === 0) spawnFood(0.1);
+  }
+  // 食材移动：点击夹取为唯一捞取途径，漂完全程未夹到则煮老报废
+  const spd = curSpeedMul();
+  for (const f of G.foods) {
+    if (!f.alive || G.over) continue;
+    const def = FOODS[f.type];
+    f.prevFx = f.fx;
+    f.fx += def.speed * spd * dt;
+    if (f.fx > LANE.exitX) fail(f, null, 'over');
+  }
+  G.foods = G.foods.filter(f => f.alive);
+  // 飞入蘸料碗动画与漂浮文字
+  for (const fl of G.flyers) fl.t += dt / 0.5;
+  G.flyers = G.flyers.filter(fl => fl.t < 1);
+  for (const fo of G.floaters) fo.t += dt / 1.1;
+  G.floaters = G.floaters.filter(fo => fo.t < 1);
+  // 第1关情景引导：首份食材进入沸腾闸口夹取范围时，冻结并提示「就是现在」
+  if (G.mode === 'level' && G.levelIdx === 0) {
+    outer: for (const g of G.gates) {
+      if (!isBoiling(g)) continue;
+      for (const f of G.foods) {
+        if (f.alive && foodInZone(f, g)) {
+          coach('l1-now', '就是现在！', '亮红沸腾＝有效窗口：点这个闸口立刻夹到它。暗红微沸时夹到＝捞生扣80分。', { kind: 'food', f });
+          break outer;
+        }
+      }
+    }
+  }
+}
+/* 判定：夹取时沸腾=成功；微沸=捞生失误 */
+function judge(f, g) {
+  if (isBoiling(g)) success(f, g); else fail(f, g, 'raw');
+}
+function success(f, g) {
+  f.alive = false;
+  g.flash = 1;
+  const def = FOODS[f.type];
+  G.captured++; G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
+  // 暴击判定：连击≥3起有概率，连击越高概率越大；暴击该次基础分翻倍并掉落道具
+  let crit = false;
+  if (G.combo >= RULES.crit.minCombo) {
+    const p = Math.min(RULES.crit.cap, RULES.crit.base + (G.combo - RULES.crit.minCombo) * RULES.crit.step);
+    if (G.rng() < p) crit = true;
+  }
+  // 金色食材本体双倍；若同时暴击则再叠乘暴击倍率
+  const gained = def.score * (crit ? RULES.critScoreMul : 1) * (f.golden ? RULES.goldenScoreMul : 1);
+  G.base += gained;
+  let extra = 0;
+  for (const t of RULES.comboTiers) { if (G.combo >= t.min) { extra = t.bonus; break; } }
+  G.comboBonus += extra;
+  G.bowlPile.push(f.type); if (G.bowlPile.length > 12) G.bowlPile.shift();
+  G.flyers.push({ type: f.type, fromFx: g.fx, t: 0 });
+  addFloater('+' + (gained + extra), g.fx, crit ? '#FFD76A' : '#F5B942', crit ? 24 : 20);
+  addFloater(crit ? '暴击！' : '脆了！', g.fx, crit ? '#FFD76A' : '#FFE9C4', crit ? 18 : 14, 0.35);
+  if (RARE_FOODS.indexOf(f.type) >= 0) addFloater('稀有食材！', g.fx, '#BFE38A', 14, 0.7);
+  if (f.golden) addFloater('金食材双倍！', g.fx, '#FFD76A', 14, 0.7);
+  // 金色食材：沸腾时成功夹到→金汤爆发，清除场上其余食材并按各自分值双倍计分
+  if (f.golden) goldenBurst(g);
+  SFX.success();
+  if (crit) { G.crits++; SFX.crit(); dropItem(g.fx); }
+  if (G.combo === 3 || G.combo === 5 || G.combo === 8) SFX.combo(G.combo);
+  // 第1关首次成功：教连击加分
+  if (G.mode === 'level' && G.levelIdx === 0 && G.captured === 1) {
+    coach('l1-got', '捞到了！', '连击加分：3连每次+20、5连+50、8连+80，失误清零。连击≥3还有概率暴击掉道具。', { kind: 'bowl' });
+  }
+  // 关卡达标即通关
+  if (G.mode === 'level' && G.captured >= LEVELS[G.levelIdx].target) { endGame(true); return; }
+  // 无尽升级
+  if (G.mode === 'endless') {
+    const lv = Math.min(RULES.endlessMaxLv, Math.floor(G.captured / RULES.endlessStep));
+    if (lv > G.endlessLv) applyEndlessLevel(lv);
+  }
+}
+function fail(f, g, reason) {
+  // 金色食材是奖励机会：捞生或漂走都不扣分、不耗名额、不断连击
+  if (f.golden) {
+    f.alive = false;
+    const fx = g ? g.fx : LANE.exitX;
+    addFloater(reason === 'raw' ? '金食材要沸腾时夹！' : '金食材溜走了…', fx, '#FFD76A', 13);
+    SFX.click();
+    return;
+  }
+  f.alive = false;
+  G.misses++; G.quota--; G.combo = 0;
+  // 第1关首次失误：教扣分与名额
+  if (G.mode === 'level' && G.levelIdx === 0 && G.misses === 1) {
+    coach('l1-miss', '失误了', '扣80分并耗1次失误名额（右上角小火锅）；名额耗尽挑战结束。看准亮红再出手。', { kind: 'gate', i: Math.max(0, G.gates.indexOf(g)) });
+  }
+  const doubled = g && g.laolu && reason === 'raw';
+  const pen = RULES.missPenalty * (doubled ? RULES.laoluMultiplier : 1);
+  G.penalty += pen;
+  const fx = g ? g.fx : LANE.exitX;
+  addFloater('-' + pen, fx, '#FF8A6A', 20);
+  addFloater(reason === 'raw' ? (doubled ? '老卤捞生！' : '没烫熟！') : '煮老了！', fx, '#FFB49A', 13, 0.35);
+  SFX.miss();
+  if (G.quota <= 0) {
+    // 被动道具「满血复活」：名额耗尽时自动回满，仅本局一次
+    if (G.items.revive > 0) {
+      G.items.revive--;
+      G.quota = initialQuota();
+      showToast('满血复活！');
+      SFX.combo(8);
+      updateItemBar();
+      updateHud(true);
+    } else endGame(false);
+  }
+}
+function initialQuota() { return G.mode === 'level' ? LEVELS[G.levelIdx].quota : ENDLESS.quota; }
+/* 金汤爆发：消除屏幕上所有其他食材，按各自基础分值×2计分（不计连击/暴击/捞出份数） */
+function goldenBurst(g) {
+  let sum = 0, n = 0;
+  for (const o of G.foods) {
+    if (!o.alive) continue;
+    o.alive = false;
+    sum += FOODS[o.type].score * RULES.goldenScoreMul; n++;
+    G.bowlPile.push(o.type); if (G.bowlPile.length > 12) G.bowlPile.shift();
+    G.flyers.push({ type: o.type, fromFx: o.fx, t: 0 });
+  }
+  G.foods = G.foods.filter(o => o.alive);
+  G.base += sum; G.goldens++;
+  addFloater('金汤爆发 +' + sum, g.fx, '#FFD76A', 22, 0.5);
+  showToast('金色食材！清除' + n + '份食材 双倍+' + sum);
+  SFX.crit();
+}
+/* ===== 道具：暴击掉落 / 使用 / 道具栏 ===== */
+/* 暴击随机掉落1件道具；复活每局只能获得一次，已获得则从掉落池移除 */
+function dropItem(fx) {
+  const w = G.mode === 'endless' ? RULES.itemWeightsEndless : RULES.itemWeights;
+  const pool = [['boil', w.boil], ['clear', w.clear]];
+  if (G.mode === 'endless') pool.push(['heart', w.heart]);   // 补心仅无尽模式掉落
+  if (!G.reviveObtained) pool.push(['revive', w.revive]);
+  const total = pool.reduce((s, p) => s + p[1], 0);
+  let r = G.rng() * total, pick = pool[0][0];
+  for (const p of pool) { r -= p[1]; if (r <= 0) { pick = p[0]; break; } }
+  G.items[pick]++;
+  if (pick === 'revive') G.reviveObtained = true;
+  addFloater('获得「' + ITEM_NAMES[pick] + '」', fx, '#BFE38A', 14, 0.7);
+  // 首次获得该道具：弹出效果说明，让玩家知道怎么用
+  if (!G.itemSeen[pick]) {
+    G.itemSeen[pick] = true;
+    showToast('获得「' + ITEM_NAMES[pick] + '」：' + ITEM_DESC[pick]);
+  }
+  // 第1关首次暴击掉道具：教道具栏用法
+  if (G.mode === 'level' && G.levelIdx === 0 && G.crits === 1) {
+    coach('l1-item', '暴击掉道具！', '点底部道具槽使用：沸腾＝全闸口沸腾5秒；清场＝消除在场食材；复活＝被动保命。仅本局有效，点?看图鉴。', { kind: 'bar' });
+  }
+  updateItemBar();
+}
+/* 使用道具：仅本局库存，主动道具点击生效，复活为被动 */
+function useItem(kind) {
+  if (!G.running || G.paused || G.over) return;
+  if (kind === 'revive') { showToast('满血复活：' + ITEM_DESC.revive); return; }
+  if (kind === 'heart' && G.mode !== 'endless') { showToast('补心是来捞吧专属道具'); return; }
+  if (G.items[kind] <= 0) { showToast(ITEM_NAMES[kind] + '：' + ITEM_DESC[kind]); return; }
+  // 补心：名额还是满的（没消耗过失误机会）就用不了，不消耗库存
+  if (kind === 'heart' && G.quota >= initialQuota()) { showToast('名额还是满的，失误后再来补'); return; }
+  G.items[kind]--;
+  if (kind === 'boil') {
+    G.forceBoilUntil = G.time + RULES.boilDuration;
+    showToast('全锅沸腾 ' + RULES.boilDuration + ' 秒！');
+    SFX.combo(5);
+  } else if (kind === 'heart') {
+    // 恢复1次已消耗的失误机会：右上角小火锅回亮一格
+    G.quota++;
+    showToast('失误机会 +1！');
+    SFX.combo(5);
+    updateHud(true);
+  } else if (kind === 'clear') {
+    // 消除在场所有食材：不计分、不扣分、不耗名额
+    for (const f of G.foods) f.alive = false;
+    G.foods = [];
+    showToast('清场！');
+    SFX.click();
+  }
+  updateItemBar();
+}
+/* 道具栏刷新：数量角标 / 空槽置灰 / 复活被动状态 */
+function updateItemBar() {
+  ['boil', 'clear', 'heart', 'revive'].forEach(k => {
+    const slot = document.getElementById('item-' + k);
+    if (!slot) return;
+    const n = G.items[k];
+    slot.querySelector('.item-count').textContent = n;
+    slot.classList.toggle('empty', n <= 0);
+    if (k === 'heart') slot.style.display = G.mode === 'endless' ? '' : 'none';   // 补心槽仅无尽显示
+    if (k === 'revive') {
+      slot.classList.toggle('owned', n > 0);
+      slot.classList.toggle('used', G.reviveObtained && n <= 0);
+    }
+  });
+}
+function addFloater(text, fx, color, size, dy) {
+  G.floaters.push({ text, fx, color, size, t: 0, dy: dy || 0 });
+}
+/* 无尽升级：重建闸口（保留已有相位与开关），食材位置基准重置防误判 */
+function applyEndlessLevel(lv) {
+  G.endlessLv = lv;
+  G.endlessCfg = ENDLESS.derive(lv);
+  const specs = endlessSpecs(G.endlessCfg);
+  const old = G.gates;
+  G.gates = buildGates(specs);
+  G.gates.forEach((g, i) => {
+    if (old[i]) { g.phase = old[i].phase; g.pop = 0; }
+    else { g.pop = 1; }
+  });
+  for (const f of G.foods) { f.prevFx = f.fx; }
+  document.getElementById('hud-mode').textContent = '来捞吧！Lv.' + lv;
+  showToast('难度提升 Lv.' + lv);
+}
+function showToast(text) {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.classList.toggle('long', text.length > 8);   // 长文案缩小字号并允许换行
+  t.classList.remove('show');
+  void t.offsetWidth;   // 重置动画
+  t.classList.add('show');
+}
+
+/* ===== 渲染：Canvas 2D，Q版火锅 ===== */
+const cv = document.getElementById('cv');
+const cx = cv.getContext('2d');
+let VW = 0, VH = 0, DPR = 1;
+function resizeCanvas() {
+  const stage = document.getElementById('stage');
+  const w = stage.clientWidth, h = stage.clientHeight;
+  if (!w || !h) return;
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+  VW = w; VH = h;
+  cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+function laneMetrics() {
+  const laneH = Math.min(120, VH * 0.26);
+  return { y: VH * 0.52, h: laneH };
+}
+function render(dt, active) {
+  if (!VW) return;
+  cx.clearRect(0, 0, VW, VH);
+  const { y: LY, h: LH } = laneMetrics();
+  drawLane(LY, LH);
+  drawBowl(LY, LH);
+  for (const g of G.gates) drawGate(g, LY, LH, dt, active);
+  for (const f of G.foods) drawFood(f, LY, LH);
+  for (const fl of G.flyers) drawFlyer(fl, LY, LH);
+  for (const fo of G.floaters) drawFloater(fo, LY);
+  if (G.combo >= 3 && G.running && !G.over) drawCombo();
+  if (G.coach) drawCoach(performance.now() / 1000);
+}
+/* 中文逐字换行 */
+function wrapText(text, maxW) {
+  const lines = []; let cur = '';
+  for (const ch of text) {
+    if (cur && cx.measureText(cur + ch).width > maxW) { lines.push(cur); cur = ch; }
+    else cur += ch;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+/* 情景引导气泡：金环指向目标＋奶油色气泡＋箭头，冻结画面时阅读 */
+function drawCoach(now) {
+  const c = G.coach;
+  const { y: LY } = laneMetrics();
+  let ax = VW / 2, ay = LY, ring = true, down = false;
+  if (c.anchor.kind === 'gate') { const g = G.gates[c.anchor.i]; if (g) { ax = g.fx * VW; ay = LY; } else ring = false; }
+  else if (c.anchor.kind === 'food') { const f = c.anchor.f; if (f && f.alive) { ax = f.fx * VW; ay = LY; } else ring = false; }
+  else if (c.anchor.kind === 'bowl') { ax = LANE.bowlX * VW; ay = LY; }
+  else if (c.anchor.kind === 'bar') { ax = VW / 2; ay = VH - 4; ring = false; down = true; }
+  // 目标金环（呼吸）
+  if (ring) {
+    const r = 30 + (REDUCED_MOTION ? 0 : Math.sin(now * 5) * 3);
+    cx.save();
+    cx.strokeStyle = 'rgba(255,215,106,.9)'; cx.lineWidth = 3;
+    cx.beginPath(); cx.arc(ax, ay, r, 0, Math.PI * 2); cx.stroke();
+    cx.strokeStyle = 'rgba(255,215,106,.35)'; cx.lineWidth = 6;
+    cx.beginPath(); cx.arc(ax, ay, r + 6, 0, Math.PI * 2); cx.stroke();
+    cx.restore();
+  }
+  // 气泡尺寸与位置：优先目标上方，放不下改下方；道具栏锚点固定底部
+  cx.font = '13px "PingFang SC","Microsoft YaHei",sans-serif';
+  const w = Math.min(VW - 28, 320);
+  const lines = wrapText(c.body, w - 26);
+  const h = 42 + lines.length * 18 + 20;
+  const bx = Math.max(14, Math.min(VW - w - 14, ax - w / 2));
+  let by = ay - h - 40, below = false;
+  if (down) { by = VH - h - 12; }
+  else if (by < 10) { by = ay + 40; below = true; }
+  cx.save();
+  cx.fillStyle = 'rgba(255,243,223,.97)';
+  cx.strokeStyle = '#9C6B3F'; cx.lineWidth = 3;
+  cx.beginPath();
+  if (cx.roundRect) cx.roundRect(bx, by, w, h, 12); else cx.rect(bx, by, w, h);
+  cx.fill(); cx.stroke();
+  // 指向箭头
+  cx.fillStyle = 'rgba(255,243,223,.97)';
+  cx.beginPath();
+  const tipY = down ? by + h + 10 : (below ? by - 10 : by + h + 10);
+  const baseY = down ? by + h - 1 : (below ? by + 1 : by + h - 1);
+  cx.moveTo(Math.max(bx + 18, Math.min(bx + w - 18, ax)) - 8, baseY);
+  cx.lineTo(Math.max(bx + 18, Math.min(bx + w - 18, ax)) + 8, baseY);
+  cx.lineTo(Math.max(bx + 18, Math.min(bx + w - 18, ax)), tipY);
+  cx.closePath(); cx.fill();
+  // 标题／正文／继续提示
+  cx.textAlign = 'left'; cx.textBaseline = 'top';
+  cx.font = '15px "ZCOOL KuaiLe","PingFang SC",sans-serif';
+  cx.fillStyle = '#B3301C';
+  cx.fillText(c.title, bx + 13, by + 10);
+  cx.font = '13px "PingFang SC","Microsoft YaHei",sans-serif';
+  cx.fillStyle = '#5C2A12';
+  lines.forEach((ln, i) => cx.fillText(ln, bx + 13, by + 32 + i * 18));
+  cx.font = '11px "PingFang SC","Microsoft YaHei",sans-serif';
+  cx.fillStyle = '#8A4A22';
+  cx.textAlign = 'right';
+  cx.fillText('点击任意处继续', bx + w - 12, by + h - 18);
+  cx.restore();
+}
+function drawLane(LY, LH) {
+  const grad = cx.createLinearGradient(0, LY - LH / 2, 0, LY + LH / 2);
+  grad.addColorStop(0, '#B83418'); grad.addColorStop(0.5, '#A02610'); grad.addColorStop(1, '#8A1E0C');
+  cx.fillStyle = grad;
+  cx.fillRect(0, LY - LH / 2, VW, LH);
+  // 汤面油光波纹（两条缓慢流动的正弦高光线）
+  if (!REDUCED_MOTION) {
+    cx.strokeStyle = 'rgba(255,130,80,.28)'; cx.lineWidth = 2;
+    for (let k = 0; k < 2; k++) {
+      cx.beginPath();
+      const yy = LY - LH * 0.22 + k * LH * 0.4;
+      for (let x = 0; x <= VW; x += 8) {
+        const y = yy + Math.sin(x * 0.045 + G.time * (1.1 + k * 0.4) + k * 2) * 3;
+        x === 0 ? cx.moveTo(x, y) : cx.lineTo(x, y);
+      }
+      cx.stroke();
+    }
+  }
+  // 锅沿：深色金属边 + 金色内线，红汤航道像一口长条锅
+  cx.fillStyle = '#4A3222';
+  cx.fillRect(0, LY - LH / 2 - 8, VW, 8);
+  cx.fillRect(0, LY + LH / 2, VW, 8);
+  cx.fillStyle = '#D99A22';
+  cx.fillRect(0, LY - LH / 2 - 1.5, VW, 1.5);
+  cx.fillRect(0, LY + LH / 2, VW, 1.5);
+  // 汤面蒸汽：三缕缓慢上升的淡色曲线
+  if (!REDUCED_MOTION) {
+    cx.strokeStyle = 'rgba(255,240,220,.14)'; cx.lineWidth = 3; cx.lineCap = 'round';
+    for (let k = 0; k < 3; k++) {
+      const sx = VW * (0.2 + k * 0.28);
+      const ph = G.time * 0.9 + k * 2.1;
+      const rise = (ph % 2) / 2;
+      cx.save(); cx.globalAlpha = Math.sin(rise * Math.PI) * 0.9;
+      cx.beginPath();
+      const baseY = LY - LH / 2 - 12 - rise * 30;
+      cx.moveTo(sx, baseY);
+      cx.bezierCurveTo(sx - 8, baseY - 12, sx + 8, baseY - 24, sx - 4, baseY - 38);
+      cx.stroke(); cx.restore();
+    }
+  }
+  // 木桌点缀：干辣椒与葱圈（避开航道与闸口操作区）
+  cx.save(); cx.globalAlpha = 0.55;
+  cx.fillStyle = '#C43A20';
+  [[0.14, 0.16, 0.5], [0.82, 0.86, -0.7]].forEach(c => {
+    cx.save(); cx.translate(c[0] * VW, c[1] * VH); cx.rotate(c[2]);
+    cx.beginPath(); cx.ellipse(0, 0, 13, 4.5, 0, 0, Math.PI * 2); cx.fill();
+    cx.strokeStyle = '#8FAE5D'; cx.lineWidth = 2.5;
+    cx.beginPath(); cx.moveTo(13, 0); cx.lineTo(18, -3); cx.stroke();
+    cx.restore();
+  });
+  cx.strokeStyle = '#8FAE5D'; cx.lineWidth = 2.5;
+  [[0.68, 0.13], [0.3, 0.88], [0.9, 0.2]].forEach(c => {
+    cx.beginPath(); cx.arc(c[0] * VW, c[1] * VH, 5, 0, Math.PI * 2); cx.stroke();
+  });
+  cx.restore();
+  // 漂浮辣椒段点缀（确定性位置，随汤缓慢右移）
+  cx.fillStyle = 'rgba(210,70,40,.5)';
+  for (let i = 0; i < 5; i++) {
+    const px = ((i * 0.23 + (REDUCED_MOTION ? 0 : G.time * 0.012)) % 1.1) * VW - VW * 0.05;
+    const py = LY + Math.sin(i * 2.1) * LH * 0.3;
+    cx.save(); cx.translate(px, py); cx.rotate(i);
+    cx.fillRect(-5, -2, 10, 4); cx.restore();
+  }
+}
+function gateWidth() {
+  const n = G.gates.length || 1;
+  return Math.max(30, Math.min(62, (LANE.gateTo - LANE.gateFrom) * VW / n - 8));
+}
+function drawGate(g, LY, LH, dt, active) {
+  const gw = gateWidth(), gh = LH + 26;
+  const gx = g.fx * VW;
+  const boiling = isBoiling(g);
+  const scale = (1 + g.bounce * 0.1) * (1 - g.pop * 0.4);
+  cx.save();
+  cx.translate(gx, LY);
+  cx.scale(scale, scale);
+  cx.globalAlpha = 1 - g.pop * 0.6;
+  // 内部汤色：沸腾亮红 / 微沸暗红；老卤格更深
+  const soup = cx.createLinearGradient(0, -gh / 2, 0, gh / 2);
+  if (g.laolu) { soup.addColorStop(0, boiling ? '#C23A14' : '#4A1208'); soup.addColorStop(1, boiling ? '#9E2A0C' : '#380D05'); }
+  else { soup.addColorStop(0, boiling ? '#FF5230' : '#6B1A10'); soup.addColorStop(1, boiling ? '#D93A1E' : '#57120A'); }
+  cx.fillStyle = soup;
+  roundRect(-gw / 2, -gh / 2, gw, gh, 8); cx.fill();
+  // 九宫格分隔线
+  cx.strokeStyle = 'rgba(0,0,0,.18)'; cx.lineWidth = 1.5;
+  cx.beginPath();
+  for (let k = 1; k < 3; k++) {
+    cx.moveTo(-gw / 2 + gw * k / 3, -gh / 2 + 3); cx.lineTo(-gw / 2 + gw * k / 3, gh / 2 - 3);
+    cx.moveTo(-gw / 2 + 3, -gh / 2 + gh * k / 3); cx.lineTo(gw / 2 - 3, -gh / 2 + gh * k / 3);
+  }
+  cx.stroke();
+  // 沸腾气泡：窗口即将关闭时明显加快
+  if (active && boiling && !REDUCED_MOTION) {
+    const rate = boilNearEnd(g) ? 16 : 6;
+    if (Math.random() < rate * dt) {
+      g.bubbles.push({ x: (Math.random() - 0.5) * gw * 0.7, y: gh / 2 - 6, r: 2 + Math.random() * 3.5, v: 26 + Math.random() * 22 });
+    }
+  }
+  for (const b of g.bubbles) {
+    if (active) b.y -= b.v * dt * (boilNearEnd(g) ? 1.6 : 1);
+    cx.fillStyle = 'rgba(255,205,165,' + Math.max(0, Math.min(0.75, (b.y + gh / 2) / gh)) + ')';
+    cx.beginPath(); cx.arc(b.x, b.y, b.r, 0, Math.PI * 2); cx.fill();
+  }
+  g.bubbles = g.bubbles.filter(b => b.y > -gh / 2 + 4);
+  // 木质边框
+  cx.lineWidth = 5; cx.strokeStyle = g.laolu ? '#5A3A20' : '#9C6B3F';
+  roundRect(-gw / 2, -gh / 2, gw, gh, 8); cx.stroke();
+  // 成功金闪：夹到食材瞬间边框亮金
+  if (g.flash > 0) {
+    cx.save(); cx.globalAlpha *= g.flash;
+    cx.lineWidth = 3.5; cx.strokeStyle = '#F5B942';
+    roundRect(-gw / 2 - 5, -gh / 2 - 5, gw + 10, gh + 10, 11); cx.stroke();
+    cx.restore();
+  }
+  // 夹取动画：筷子快速下探再收回（一次性动作）
+  if (g.pick > 0) {
+    const depth = Math.sin((1 - g.pick) * Math.PI) * gh * 0.55;
+    cx.strokeStyle = '#F5B942'; cx.lineWidth = 3; cx.lineCap = 'round';
+    cx.beginPath();
+    cx.moveTo(gw * 0.1, -gh / 2 - 14); cx.lineTo(-gw * 0.12, -gh / 2 + depth);
+    cx.moveTo(gw * 0.28, -gh / 2 - 12); cx.lineTo(gw * 0.04, -gh / 2 + depth * 0.94);
+    cx.stroke();
+  }
+  // 老卤标签
+  if (g.laolu) {
+    cx.fillStyle = '#38160A';
+    roundRect(-20, gh / 2 + 7, 40, 18, 5); cx.fill();
+    cx.fillStyle = '#F4CFA0'; cx.font = '11px ' + 'sans-serif';
+    cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText('老卤', 0, gh / 2 + 16);
+  }
+  cx.restore();
+}
+/* 食材造型：圆润Q版，各自辨识度优先 */
+function drawFoodSprite(type, x, y, s, alpha) {
+  cx.save(); cx.translate(x, y); cx.globalAlpha = alpha;
+  // 投影
+  cx.fillStyle = 'rgba(0,0,0,.22)';
+  cx.beginPath(); cx.ellipse(0, s * 0.55, s * 0.62, s * 0.16, 0, 0, Math.PI * 2); cx.fill();
+  if (type === 'maodu') {            // 毛肚：深褐叶片 + 颗粒纹理
+    cx.fillStyle = '#5C4A42';
+    roundRect(-s * 0.6, -s * 0.42, s * 1.2, s * 0.86, s * 0.18); cx.fill();
+    cx.fillStyle = '#75605A';
+    for (let i = 0; i < 7; i++) {
+      const px = -s * 0.45 + (i % 4) * s * 0.3, py = -s * 0.2 + Math.floor(i / 4) * s * 0.32;
+      cx.beginPath(); cx.arc(px, py, s * 0.07, 0, Math.PI * 2); cx.fill();
+    }
+    cx.strokeStyle = '#4A3A34'; cx.lineWidth = 1.5;
+    cx.beginPath();
+    for (let i = 0; i < 5; i++) { const px = -s * 0.5 + i * s * 0.25; cx.moveTo(px, -s * 0.42); cx.lineTo(px + s * 0.08, -s * 0.58); }
+    cx.stroke();
+  } else if (type === 'yaxue') {     // 鸭血：暗红方块 + 高光
+    cx.fillStyle = '#8E1F1F';
+    roundRect(-s * 0.48, -s * 0.4, s * 0.96, s * 0.84, s * 0.1); cx.fill();
+    cx.fillStyle = '#B03030';
+    roundRect(-s * 0.48, -s * 0.4, s * 0.96, s * 0.3, s * 0.1); cx.fill();
+    cx.strokeStyle = 'rgba(255,190,170,.55)'; cx.lineWidth = 2;
+    cx.beginPath(); cx.moveTo(-s * 0.28, -s * 0.24); cx.lineTo(s * 0.05, -s * 0.24); cx.stroke();
+  } else if (type === 'niurou') {    // 嫩牛肉：粉红肉卷 + 大理石纹
+    cx.fillStyle = '#E87A6A';
+    cx.beginPath(); cx.arc(0, 0, s * 0.5, 0, Math.PI * 2); cx.fill();
+    cx.strokeStyle = '#FBE3D6'; cx.lineWidth = s * 0.09;
+    cx.beginPath(); cx.arc(0, 0, s * 0.3, 0.4, Math.PI * 1.6); cx.stroke();
+    cx.beginPath(); cx.arc(s * 0.06, -s * 0.04, s * 0.12, 0, Math.PI * 2); cx.stroke();
+  } else if (type === 'huanghou') {  // 黄喉：象牙色管段 + 棱纹
+    cx.fillStyle = '#F2E3C2';
+    roundRect(-s * 0.55, -s * 0.3, s * 1.1, s * 0.6, s * 0.28); cx.fill();
+    cx.strokeStyle = '#D9C296'; cx.lineWidth = 1.6;
+    cx.beginPath();
+    for (let i = 0; i < 4; i++) { const px = -s * 0.35 + i * s * 0.24; cx.moveTo(px, -s * 0.24); cx.lineTo(px, s * 0.24); }
+    cx.stroke();
+  } else if (type === 'tudou') {     // 土豆片：淡黄圆片 + 高光
+    cx.fillStyle = '#E8C86A';
+    cx.beginPath(); cx.ellipse(0, 0, s * 0.52, s * 0.42, 0, 0, Math.PI * 2); cx.fill();
+    cx.strokeStyle = '#C9A23E'; cx.lineWidth = 2;
+    cx.beginPath(); cx.ellipse(0, 0, s * 0.52, s * 0.42, 0, 0, Math.PI * 2); cx.stroke();
+    cx.fillStyle = 'rgba(255,245,210,.7)';
+    cx.beginPath(); cx.ellipse(-s * 0.12, -s * 0.1, s * 0.18, s * 0.1, -0.5, 0, Math.PI * 2); cx.fill();
+  } else if (type === 'oupian') {    // 藕片：米白圆片 + 一圈孔洞
+    cx.fillStyle = '#F2E8D0';
+    cx.beginPath(); cx.arc(0, 0, s * 0.5, 0, Math.PI * 2); cx.fill();
+    cx.strokeStyle = '#D9C296'; cx.lineWidth = 2;
+    cx.beginPath(); cx.arc(0, 0, s * 0.5, 0, Math.PI * 2); cx.stroke();
+    cx.fillStyle = '#D9BC93';
+    for (let i = 0; i < 6; i++) {
+      const a = i * Math.PI / 3;
+      cx.beginPath(); cx.arc(Math.cos(a) * s * 0.26, Math.sin(a) * s * 0.26, s * 0.08, 0, Math.PI * 2); cx.fill();
+    }
+    cx.beginPath(); cx.arc(0, 0, s * 0.08, 0, Math.PI * 2); cx.fill();
+  } else if (type === 'junhua') {    // 郡花：粉红圆块 + 十字花刀
+    cx.fillStyle = '#D96A5A';
+    cx.beginPath(); cx.arc(0, 0, s * 0.48, 0, Math.PI * 2); cx.fill();
+    cx.strokeStyle = '#FBE3D6'; cx.lineWidth = 1.8;
+    cx.beginPath();
+    for (let i = -1; i <= 1; i++) {
+      cx.moveTo(-s * 0.36, i * s * 0.2); cx.lineTo(s * 0.36, i * s * 0.2);
+      cx.moveTo(i * s * 0.2, -s * 0.36); cx.lineTo(i * s * 0.2, s * 0.36);
+    }
+    cx.stroke();
+  } else if (type === 'echang') {    // 鹅肠：象牙粉长缎带（比鸭肠更宽更长）
+    cx.strokeStyle = '#F5C9B8'; cx.lineWidth = s * 0.3; cx.lineCap = 'round';
+    cx.beginPath();
+    cx.moveTo(-s * 0.6, s * 0.25);
+    cx.bezierCurveTo(-s * 0.25, -s * 0.6, s * 0.25, s * 0.6, s * 0.6, -s * 0.25);
+    cx.stroke();
+    cx.strokeStyle = '#FFF0E4'; cx.lineWidth = s * 0.12;
+    cx.beginPath();
+    cx.moveTo(-s * 0.6, s * 0.25);
+    cx.bezierCurveTo(-s * 0.25, -s * 0.6, s * 0.25, s * 0.6, s * 0.6, -s * 0.25);
+    cx.stroke();
+  } else if (type === 'naohua') {    // 脑花：粉嫩椭圆 + 脑纹沟回
+    cx.fillStyle = '#E8A8B0';
+    cx.beginPath(); cx.ellipse(0, 0, s * 0.52, s * 0.42, 0, 0, Math.PI * 2); cx.fill();
+    cx.strokeStyle = '#C97A84'; cx.lineWidth = 1.8; cx.lineCap = 'round';
+    cx.beginPath();
+    cx.moveTo(-s * 0.3, -s * 0.15); cx.bezierCurveTo(-s * 0.1, -s * 0.3, s * 0.1, 0, s * 0.3, -s * 0.15);
+    cx.moveTo(-s * 0.32, s * 0.08); cx.bezierCurveTo(-s * 0.1, -s * 0.05, s * 0.1, s * 0.25, s * 0.32, s * 0.08);
+    cx.moveTo(0, -s * 0.34); cx.lineTo(0, s * 0.34);
+    cx.stroke();
+  } else {                           // 鸭肠：粉色卷曲缎带
+    cx.strokeStyle = '#F0A0A0'; cx.lineWidth = s * 0.26; cx.lineCap = 'round';
+    cx.beginPath();
+    cx.moveTo(-s * 0.55, s * 0.2);
+    cx.bezierCurveTo(-s * 0.2, -s * 0.55, s * 0.2, s * 0.55, s * 0.55, -s * 0.2);
+    cx.stroke();
+    cx.strokeStyle = '#FBCFCF'; cx.lineWidth = s * 0.1;
+    cx.beginPath();
+    cx.moveTo(-s * 0.55, s * 0.2);
+    cx.bezierCurveTo(-s * 0.2, -s * 0.55, s * 0.2, s * 0.55, s * 0.55, -s * 0.2);
+    cx.stroke();
+  }
+  cx.restore();
+}
+function drawFood(f, LY, LH) {
+  const s = Math.max(24, Math.min(38, LH * 0.34));
+  const x = f.fx * VW;
+  const y = LY + (REDUCED_MOTION ? 0 : Math.sin(G.time * 2 + f.bob) * 3);
+  const alpha = Math.max(0, Math.min(1, (f.fx - LANE.spawnX) / 0.06));
+  if (f.golden) {
+    // 金色食材：呼吸金环＋金色光晕＋金星标记，一眼可辨
+    cx.save();
+    cx.globalAlpha = alpha;
+    const pulse = REDUCED_MOTION ? 0.5 : 0.5 + Math.sin(G.time * 5 + f.bob) * 0.3;
+    cx.strokeStyle = 'rgba(255,215,106,' + (0.45 + pulse * 0.4).toFixed(2) + ')';
+    cx.lineWidth = 2.5;
+    cx.beginPath(); cx.arc(x, y, s * 0.78, 0, Math.PI * 2); cx.stroke();
+    cx.shadowColor = '#FFD76A'; cx.shadowBlur = 16;
+    drawFoodSprite(f.type, x, y, s, alpha);
+    cx.shadowBlur = 0;
+    cx.fillStyle = '#FFD76A';
+    cx.font = 'bold 12px sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText('★', x + s * 0.62, y - s * 0.62);
+    cx.restore();
+  } else {
+    drawFoodSprite(f.type, x, y, s, alpha);
+  }
+  // 名称小标签，帮助辨认食材；金色食材标签带「金·」前缀
+  cx.globalAlpha = alpha;
+  cx.font = '10px sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'top';
+  cx.lineWidth = 3; cx.strokeStyle = 'rgba(60,12,5,.8)';
+  const label = (f.golden ? '金·' : '') + FOODS[f.type].name;
+  cx.strokeText(label, x, y + s * 0.62);
+  cx.fillStyle = f.golden ? '#FFD76A' : '#FFE9C4';
+  cx.fillText(label, x, y + s * 0.62);
+  cx.globalAlpha = 1;
+}
+function drawBowl(LY, LH) {
+  const bx = LANE.bowlX * VW, rx = Math.min(VW * 0.085, 42), ry = LH * 0.4;
+  cx.save(); cx.translate(bx, LY);
+  // 碗身
+  cx.fillStyle = '#FFF3DF';
+  cx.beginPath(); cx.ellipse(0, ry * 0.25, rx, ry * 0.85, 0, 0, Math.PI); cx.fill();
+  // 香油蒜泥碟面
+  cx.fillStyle = '#C98A3A';
+  cx.beginPath(); cx.ellipse(0, 0, rx, ry * 0.5, 0, 0, Math.PI * 2); cx.fill();
+  cx.strokeStyle = '#D99A22'; cx.lineWidth = 3;
+  cx.beginPath(); cx.ellipse(0, 0, rx, ry * 0.5, 0, 0, Math.PI * 2); cx.stroke();
+  // 香菜点缀
+  cx.fillStyle = '#8FAE5D';
+  [[-0.4, -0.1], [0.25, 0.12], [0.05, -0.2], [-0.15, 0.18]].forEach(p => {
+    cx.beginPath(); cx.arc(p[0] * rx, p[1] * ry, 2.2, 0, Math.PI * 2); cx.fill();
+  });
+  // 已捞食材堆叠展示（迷你色块）
+  const colors = { maodu: '#5C4A42', yaxue: '#8E1F1F', niurou: '#E87A6A', huanghou: '#F2E3C2', yachang: '#F0A0A0', tudou: '#E8C86A', oupian: '#F2E8D0', junhua: '#D96A5A', echang: '#F5C9B8', naohua: '#E8A8B0' };
+  G.bowlPile.slice(-8).forEach((t, i) => {
+    cx.fillStyle = colors[t];
+    cx.beginPath(); cx.arc((i % 4 - 1.5) * rx * 0.32, -ry * 0.14 - Math.floor(i / 4) * 7, 4.5, 0, Math.PI * 2); cx.fill();
+  });
+  cx.font = '10px sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'top';
+  cx.fillStyle = '#F4CFA0';
+  cx.fillText('蘸料碗' + (G.captured > 0 ? ' ×' + G.captured : ''), 0, ry * 1.15);
+  cx.restore();
+}
+function drawFlyer(fl, LY, LH) {
+  const t = fl.t, ease = 1 - Math.pow(1 - t, 2);
+  const x0 = fl.fromFx * VW, x1 = LANE.bowlX * VW;
+  const x = x0 + (x1 - x0) * ease;
+  const y = LY - Math.sin(t * Math.PI) * LH * 0.9;
+  const s = Math.max(24, Math.min(38, LH * 0.34)) * (1 - ease * 0.55);
+  drawFoodSprite(fl.type, x, y, s, 1 - t * 0.3);
+}
+function drawFloater(fo, LY) {
+  const x = fo.fx * VW, y = LY - 46 - fo.t * 34 - fo.dy * 40;
+  cx.globalAlpha = fo.t < 0.15 ? fo.t / 0.15 : 1 - Math.max(0, (fo.t - 0.6) / 0.4);
+  cx.font = 'bold ' + fo.size + 'px "ZCOOL KuaiLe",sans-serif';
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  cx.lineWidth = 4; cx.strokeStyle = 'rgba(60,12,5,.85)';
+  cx.strokeText(fo.text, x, y);
+  cx.fillStyle = fo.color;
+  cx.fillText(fo.text, x, y);
+  cx.globalAlpha = 1;
+}
+function drawCombo() {
+  cx.font = '26px "ZCOOL KuaiLe",sans-serif';
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  const pulse = REDUCED_MOTION ? 1 : 1 + Math.sin(G.time * 6) * 0.04;
+  cx.save(); cx.translate(VW / 2, VH * 0.12); cx.scale(pulse, pulse);
+  cx.lineWidth = 5; cx.strokeStyle = 'rgba(60,12,5,.85)';
+  cx.strokeText('连击 ×' + G.combo, 0, 0);
+  cx.fillStyle = '#F5B942';
+  cx.fillText('连击 ×' + G.combo, 0, 0);
+  cx.restore();
+}
+function roundRect(x, y, w, h, r) {
+  cx.beginPath();
+  cx.moveTo(x + r, y);
+  cx.arcTo(x + w, y, x + w, y + h, r);
+  cx.arcTo(x + w, y + h, x, y + h, r);
+  cx.arcTo(x, y + h, x, y, r);
+  cx.arcTo(x, y, x + w, y, r);
+  cx.closePath();
+}
+/* ===== 界面切换与弹窗 ===== */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
+  G.screen = id === 'scr-game' ? 'game' : id === 'scr-levels' ? 'levels' : 'home';
+}
+function showOverlay(id) { document.getElementById(id).classList.add('show'); }
+function hideOverlay(id) { document.getElementById(id).classList.remove('show'); }
+function hideAllOverlays() { document.querySelectorAll('.overlay').forEach(o => o.classList.remove('show')); }
+
+/* ===== 关卡选择页 ===== */
+const STAR_SVG = '<svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" fill="FILL" stroke="#D99A22" stroke-width="1"/></svg>';
+const LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#8A6A44" stroke-width="2"><rect x="5" y="10" width="14" height="10" rx="2" fill="#C9AE85"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
+function renderLevelGrid() {
+  const grid = document.getElementById('level-grid');
+  grid.innerHTML = '';
+  LEVELS.forEach((L, i) => {
+    const unlocked = i + 1 <= save.unlocked;
+    const stars = save.stars[i + 1] || 0;
+    const card = document.createElement('button');
+    card.className = 'level-card' + (unlocked ? '' : ' locked');
+    card.setAttribute('aria-label', unlocked ? '第' + (i + 1) + '关 ' + L.name : '第' + (i + 1) + '关 未解锁');
+    let html = '<span class="lv-num">' + (i + 1) + '</span><span class="lv-name">' + L.name + '</span><span class="lv-stars">';
+    for (let s = 0; s < 3; s++) html += STAR_SVG.replace('FILL', s < stars ? '#F5B942' : '#D9BC93');
+    html += '</span>';
+    if (save.best[i + 1]) html += '<span class="lv-best">最高 ' + save.best[i + 1] + '</span>';
+    if (!unlocked) html += '<span class="lv-lock">' + LOCK_SVG + '</span>';
+    card.innerHTML = html;
+    card.addEventListener('click', () => {
+      SFX.ensure();
+      if (!unlocked) {
+        card.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }], { duration: 220 });
+        return;
+      }
+      SFX.click();
+      openStart(i);
+    });
+    grid.appendChild(card);
+  });
+}
+let pendingLevel = 0;
+function openStart(idx) {
+  pendingLevel = idx;
+  const L = LEVELS[idx];
+  document.getElementById('start-title').textContent = '第' + (idx + 1) + '关 · ' + L.name;
+  document.getElementById('start-target').textContent = '捞出' + L.target + '份';
+  document.getElementById('start-quota').textContent = L.quota + '次';
+  document.getElementById('start-par').textContent = L.par + '秒';
+  document.getElementById('start-tscore').textContent = L.targetScore;
+  document.getElementById('start-desc').textContent = L.desc;
+  showOverlay('ov-start');
+}
+
+/* ===== HUD ===== */
+const POT_SVG = '<svg viewBox="0 0 24 24" class="CLS"><path d="M3 11h18v2.5a9 6.5 0 0 1-18 0Z" fill="#FF5230"/><ellipse cx="12" cy="11" rx="9" ry="2.8" fill="#FF7A50"/><path d="M12 8.4v5.2M7.5 9.4v3.6M16.5 9.4v3.6" stroke="#7A1E12" stroke-width="1.1"/><path d="M1.5 11h2M20.5 11h2" stroke="#F5B942" stroke-width="1.8" stroke-linecap="round"/></svg>';
+let hudCache = { score: -1, quota: -1, total: -1 };
+function updateHud(force) {
+  const sc = displayScore();
+  if (force || sc !== hudCache.score) {
+    document.getElementById('hud-score-num').textContent = sc;
+    hudCache.score = sc;
+  }
+  const total = G.mode === 'level' ? LEVELS[G.levelIdx].quota : ENDLESS.quota;
+  if (force || G.quota !== hudCache.quota || total !== hudCache.total) {
+    const box = document.getElementById('hud-quota');
+    let html = '';
+    for (let i = 0; i < total; i++) html += POT_SVG.replace('CLS', i < G.quota ? '' : 'pot-used');
+    box.innerHTML = html;
+    box.classList.toggle('quota-danger', G.quota === 1);
+    hudCache.quota = G.quota; hudCache.total = total;
+  }
+}
+
+/* ===== 对局内情景引导：冻结画面＋场景内气泡指向目标，点击任意处继续 ===== */
+function coach(key, title, body, anchor) {
+  if (G.mode !== 'level') return;
+  const m = save.coachSeen[G.levelIdx];
+  if (m && m[key]) return;                       // 每关每条引导只教一次（记存档）
+  if (G.coach && G.coach.key === key) return;
+  if (G.coachQueue.some(c => c.key === key)) return;
+  const c = { key, title, body, anchor };
+  if (G.coach) G.coachQueue.push(c); else G.coach = c;
+}
+function dismissCoach() {
+  if (!G.coach) return;
+  const m = save.coachSeen[G.levelIdx] || (save.coachSeen[G.levelIdx] = {});
+  m[G.coach.key] = true; persist();
+  G.coach = G.coachQueue.shift() || null;
+  SFX.click();
+}
+/* ===== 暂停 / 退出 ===== */
+function pauseGame() {
+  if (!G.running || G.over || G.paused) return;
+  G.paused = true;
+  showOverlay('ov-pause');
+}
+function resumeGame() {
+  G.paused = false;
+  hideOverlay('ov-pause');
+}
+function quitGame() {
+  G.running = false; G.paused = false; G.over = true;
+  hideAllOverlays();
+  if (G.mode === 'level') { renderLevelGrid(); showScreen('scr-levels'); }
+  else showScreen('scr-home');
+}
+
+/* ===== 结算 ===== */
+let countRaf = 0;
+function endGame(win) {
+  if (G.over) return;
+  G.over = true; G.running = false;
+  const isLevel = G.mode === 'level';
+  const L = isLevel ? LEVELS[G.levelIdx] : null;
+  const timeBonus = win && isLevel ? Math.max(0, Math.round((L.par - G.time) * RULES.timeBonusPerSec)) : 0;
+  const final = displayScore() + timeBonus;
+  let stars = 0;
+  if (win && isLevel) {
+    stars = final >= L.targetScore * RULES.star3 && G.misses <= RULES.star3MaxMiss ? 3
+          : final >= L.targetScore * RULES.star2 ? 2 : 1;
+  }
+  // 存档：星级 / 最高分 / 解锁
+  let newBest = false;
+  if (isLevel) {
+    const key = G.levelIdx + 1;
+    if (win) {
+      save.stars[key] = Math.max(save.stars[key] || 0, stars);
+      save.unlocked = Math.max(save.unlocked, Math.min(LEVELS.length, key + 1));
+    }
+    if (final > (save.best[key] || 0)) { save.best[key] = final; newBest = true; }
+    if (G.levelIdx === 0) save.tutorialSeen = true;
+  } else {
+    if (final > save.endlessBest.score) { save.endlessBest = { score: final, level: G.endlessLv }; newBest = true; }
+  }
+  persist();
+  win ? SFX.win() : SFX.lose();
+  setTimeout(() => { if (G.over && G.screen === 'game') showResult(win, final, timeBonus, stars, newBest); }, 650);
+}
+function showResult(win, final, timeBonus, stars, newBest) {
+  const isLevel = G.mode === 'level';
+  document.getElementById('result-title').textContent = win ? '通关成功' : '挑战结束';
+  // 星级：依次点亮
+  const starBox = document.getElementById('result-stars');
+  starBox.hidden = !(win && isLevel);
+  const svgs = starBox.querySelectorAll('svg');
+  svgs.forEach(s => s.classList.remove('lit'));
+  if (win && isLevel) {
+    svgs.forEach((s, i) => { if (i < stars) setTimeout(() => s.classList.add('lit'), 300 + i * 380); });
+  }
+  // 分数从 0 滚动到最终值
+  const numEl = document.getElementById('result-score-num');
+  cancelAnimationFrame(countRaf);
+  const t0 = performance.now();
+  (function count(now) {
+    const p = Math.min(1, (now - t0) / 900);
+    numEl.textContent = Math.round(final * (1 - Math.pow(1 - p, 3)));
+    if (p < 1) countRaf = requestAnimationFrame(count);
+  })(t0);
+  // 明细行
+  const rows = [];
+  rows.push([isLevel ? '用时' : '坚持时长', G.time.toFixed(1) + '秒']);
+  if (win && isLevel) rows.push(['时间奖励', '+' + timeBonus]);
+  if (!isLevel) rows.push(['最高难度', 'Lv.' + G.endlessLv]);
+  rows.push(['捞出食材', G.captured + '份']);
+  rows.push(['失误次数', G.misses + '次']);
+  rows.push(['最高连击', '×' + G.maxCombo]);
+  if (G.crits > 0) rows.push(['暴击次数', G.crits + '次']);
+  if (G.goldens > 0) rows.push(['金汤爆发', G.goldens + '次']);
+  document.getElementById('result-rows').innerHTML = rows.map(r => '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('');
+  document.getElementById('result-newbest').hidden = !newBest;
+  // 按钮
+  const acts = document.getElementById('result-actions');
+  acts.innerHTML = '';
+  function addBtn(text, cls, fn) {
+    const b = document.createElement('button');
+    b.className = cls; b.textContent = text;
+    b.addEventListener('click', () => { SFX.ensure(); SFX.click(); fn(); });
+    acts.appendChild(b);
+  }
+  if (win && isLevel && G.levelIdx < LEVELS.length - 1) {
+    addBtn('下一关', 'btn-main', () => startLevel(G.levelIdx + 1));
+    addBtn('重玩本关', 'btn-sub', () => startLevel(G.levelIdx));
+    addBtn('返回首页', 'btn-sub', () => { hideAllOverlays(); showScreen('scr-home'); });
+  } else if (isLevel) {
+    addBtn(win ? '重玩本关' : '再来一次', 'btn-main', () => startLevel(G.levelIdx));
+    addBtn('返回首页', 'btn-sub', () => { hideAllOverlays(); renderLevelGrid(); showScreen('scr-levels'); });
+  } else {
+    addBtn('再来一次', 'btn-main', () => startEndless());
+    addBtn('返回首页', 'btn-sub', () => { hideAllOverlays(); showScreen('scr-home'); });
+  }
+  showOverlay('ov-result');
+}
+
+/* ===== 输入：触控 / 鼠标 / 键盘（点击＝立刻夹取一次） ===== */
+/* 食材是否在闸口的夹取范围内：基础半宽 + 食材容错距离（鸭血宽、毛肚极窄） */
+function foodInZone(f, g) {
+  const def = FOODS[f.type];
+  const half = Math.max(0.035, gateWidth() / 2 / (VW || 400)) + 0.008;
+  const zone = half + def.tol * def.speed * curSpeedMul();
+  return Math.abs(f.fx - g.fx) <= zone;
+}
+function pickGateAt(fx) {
+  const n = G.gates.length;
+  if (!n) return;
+  const from = LANE.gateFrom - 0.06, to = LANE.gateTo + 0.06;
+  if (fx < from || fx > to) return;
+  const idx = Math.max(0, Math.min(n - 1, Math.floor((fx - from) / (to - from) * n)));
+  pickGate(idx);
+}
+/* 立刻夹取：范围内有食材→按沸腾状态判定；没有→夹空，不扣分 */
+function pickGate(idx) {
+  const g = G.gates[idx];
+  if (!g || !G.running || G.paused || G.over) return;
+  g.bounce = 1; g.pick = 1;
+  let best = null, bestD = 1e9;
+  for (const f of G.foods) {
+    if (!f.alive) continue;
+    const d = Math.abs(f.fx - g.fx);
+    if (d < bestD && foodInZone(f, g)) { best = f; bestD = d; }
+  }
+  if (best) judge(best, g);
+  else SFX.click();   // 夹空：只有筷子声，无惩罚
+  if (!G.tutorialDone) {
+    G.tutorialDone = true;
+    document.getElementById('tutorial').hidden = true;
+    save.tutorialSeen = true; persist();
+  }
+}
+cv.addEventListener('pointerdown', e => {
+  SFX.ensure();
+  if (G.coach) { e.preventDefault(); dismissCoach(); return; }   // 引导中点击＝继续，不夹取
+  if (!G.running || G.paused || G.over) return;
+  e.preventDefault();
+  const rect = cv.getBoundingClientRect();
+  pickGateAt((e.clientX - rect.left) / rect.width);
+});
+document.addEventListener('keydown', e => {
+  if (G.screen !== 'game') return;
+  // 情景引导打开时：空格/回车/Esc 或点击画面关闭引导，其余按键不穿透到对局
+  if (G.coach) {
+    if (e.key === ' ' || e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); dismissCoach(); }
+    return;
+  }
+  if (e.key >= '1' && e.key <= '7') {
+    SFX.ensure();
+    pickGate(parseInt(e.key, 10) - 1);
+  } else if (e.key === 'q' || e.key === 'Q') { SFX.ensure(); useItem('boil'); }
+  else if (e.key === 'w' || e.key === 'W') { SFX.ensure(); useItem('clear'); }
+  else if (e.key === 'e' || e.key === 'E') { SFX.ensure(); useItem('heart'); }
+  else if (e.key === ' ' || e.key === 'Escape') {
+    e.preventDefault();
+    if (G.paused) resumeGame(); else pauseGame();
+  }
+});
+
+/* ===== 按钮绑定 ===== */
+function bind(id, fn) {
+  document.getElementById(id).addEventListener('click', () => { SFX.ensure(); SFX.click(); fn(); });
+}
+bind('btn-mode-level', () => { renderLevelGrid(); showScreen('scr-levels'); });
+bind('btn-mode-endless', () => startEndless());
+bind('btn-rules', () => showOverlay('ov-rules'));
+bind('btn-rules-close', () => hideOverlay('ov-rules'));
+bind('btn-levels-back', () => showScreen('scr-home'));
+bind('btn-start-go', () => startLevel(pendingLevel));
+bind('btn-start-cancel', () => hideOverlay('ov-start'));
+bind('btn-pause', pauseGame);
+bind('btn-game-back', pauseGame);
+bind('btn-resume', resumeGame);
+bind('btn-quit', quitGame);
+/* 道具栏：主动道具点击使用，被动槽点击提示说明 */
+bind('item-boil', () => useItem('boil'));
+bind('item-clear', () => useItem('clear'));
+bind('item-heart', () => useItem('heart'));
+bind('item-revive', () => useItem('revive'));
+/* 道具图鉴：对局中打开自动暂停，关闭恢复，避免看说明时食材煮老 */
+let dexPause = false;
+bind('btn-items-help', () => {
+  if (G.running && !G.paused && !G.over) { G.paused = true; dexPause = true; }
+  showOverlay('ov-items');
+});
+bind('btn-items-close', () => {
+  hideOverlay('ov-items');
+  if (dexPause) { G.paused = false; dexPause = false; }
+});
+/* 静音开关：可见、可键盘操作、偏好持久化 */
+const muteBtn = document.getElementById('btn-mute');
+function syncMute() {
+  muteBtn.classList.toggle('muted', SFX.muted);
+  muteBtn.setAttribute('aria-checked', String(!SFX.muted));
+}
+muteBtn.addEventListener('click', () => { SFX.ensure(); SFX.toggle(); syncMute(); });
+syncMute();
+
+/* ===== 主循环：dt 截断防切页补帧；页面隐藏自动暂停 ===== */
+let lastFrame = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastFrame) / 1000);
+  lastFrame = now;
+  const active = G.running && !G.paused && !G.over && !G.coach;   // 情景引导期间冻结仿真
+  if (active) update(dt);
+  if (G.screen === 'game') { render(dt, active); updateHud(); }
+  requestAnimationFrame(frame);
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 120));
+
+/* ===== 启动 ===== */
+renderLevelGrid();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
